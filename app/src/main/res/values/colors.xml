@@ -4,4 +4,7 @@
     <color name="campus_ink">#14161A</color>
     <color name="campus_rule">#D9D4C7</color>
     <color name="campus_green">#2F6B4F</color>
+    <!-- Room badge: dark green block so the code reads from across the room. -->
+    <color name="campus_room_badge_ink">#FFFFFF</color>
+    <color name="campus_room_badge_label">#C9DCCB</color>
 </resources>

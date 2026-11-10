@@ -1,0 +1,294 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Pratinjau layout widget Kampus</title>
+<style>
+  :root { --u: 2px; }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    padding: 24px 16px 48px;
+    background: #E8E4DA;
+    font-family: Roboto, "Helvetica Neue", Arial, sans-serif;
+    color: #14161A;
+  }
+  h1 { font-size: 20px; margin: 0 0 4px; }
+  p.lead { margin: 0 0 20px; font-size: 13px; color: #4A4D48; max-width: 720px; line-height: 1.5; }
+  .toolbar { margin: 0 0 24px; display: flex; gap: 8px; flex-wrap: wrap; }
+  .toolbar button {
+    font: 500 13px Roboto, Arial, sans-serif;
+    padding: 8px 14px; border-radius: 8px; cursor: pointer;
+    border: 1px solid #B9B3A4; background: #F6F4EF; color: #14161A;
+  }
+  .toolbar button[aria-pressed="true"] { background: #2F6B4F; border-color: #2F6B4F; color: #fff; }
+  .grid { display: flex; flex-wrap: wrap; gap: 28px; align-items: flex-start; }
+  figure { margin: 0; }
+  figcaption { font-size: 12px; color: #4A4D48; margin-top: 8px; font-variant-numeric: tabular-nums; }
+
+  /* ---- Widget: mirrors campus_widget.xml (dp values via --u) ---- */
+  .widget {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    padding: calc(10 * var(--u));
+    background: #F6F4EF;
+    border: 1px solid #D9D4C7;
+    border-radius: calc(16 * var(--u));
+    overflow: hidden;
+  }
+  .row {
+    display: flex;
+    align-items: center;
+    gap: calc(8 * var(--u));
+  }
+  .col { flex: 1 1 auto; min-width: 0; }
+  .status {
+    font-size: calc(11 * var(--u));
+    font-weight: 500;
+    color: #2F6B4F;
+    line-height: 1.25;
+    overflow-wrap: anywhere;
+  }
+  .time {
+    margin-top: calc(4 * var(--u));
+    font-family: "Roboto Mono", monospace;
+    font-weight: 700;
+    font-size: calc(22 * var(--u));
+    line-height: 1.15;
+    letter-spacing: -0.01em;
+    overflow-wrap: anywhere;
+  }
+  .course {
+    margin-top: calc(3 * var(--u));
+    font-size: calc(14 * var(--u));
+    line-height: 1.25;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .meta {
+    margin-top: calc(2 * var(--u));
+    font-size: calc(11 * var(--u));
+    color: #5E615B;
+    line-height: 1.25;
+  }
+
+  /* Room badge — dark green block, the emphasised element */
+  .badge {
+    flex: 0 0 auto;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: calc(5 * var(--u)) calc(8 * var(--u));
+    background: #2F6B4F;
+    border: 1px solid #245640;
+    border-radius: calc(10 * var(--u));
+  }
+  .badge-label {
+    font-size: calc(8.5 * var(--u));
+    font-weight: 500;
+    letter-spacing: 0.08em;
+    color: #C9DCCB;
+    line-height: 1.2;
+    white-space: nowrap;
+  }
+  .badge-room {
+    margin-top: calc(2 * var(--u));
+    font-size: calc(30 * var(--u));
+    font-weight: 700;
+    color: #FFFFFF;
+    line-height: 1.05;
+    letter-spacing: -0.02em;
+    white-space: nowrap;
+  }
+
+  .next { margin-top: calc(8 * var(--u)); }
+  .divider { height: 1px; background: #D9D4C7; margin-bottom: calc(6 * var(--u)); }
+  .next .status { font-size: calc(11 * var(--u)); }
+  .next-time {
+    margin-top: calc(2 * var(--u));
+    font-weight: 700;
+    font-size: calc(16 * var(--u));
+    line-height: 1.2;
+  }
+  .next-course {
+    margin-top: calc(2 * var(--u));
+    font-size: calc(12 * var(--u));
+    color: #5E615B;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .next .badge { padding: calc(5 * var(--u)) calc(8 * var(--u)); }
+  .next .badge-label { font-size: calc(8 * var(--u)); }
+  .next .badge-room { font-size: calc(22 * var(--u)); }
+
+  .footer {
+    margin-top: auto;
+    padding-top: calc(6 * var(--u));
+    display: flex;
+    align-items: center;
+    gap: calc(6 * var(--u));
+    font-size: calc(10 * var(--u));
+    color: #5E615B;
+  }
+  .footer .spacer { flex: 1 1 auto; }
+  .footer .clock { font-family: "Roboto Mono", monospace; font-size: calc(11 * var(--u)); color: #14161A; }
+
+  /* Compact variant: what a 2×2 / 110dp widget collapses to */
+  .compact .next { display: none; }
+  .compact .status { font-size: calc(10 * var(--u)); }
+  .compact .time { font-size: calc(18 * var(--u)); }
+  .compact .course { font-size: calc(12 * var(--u)); }
+  .compact .meta { display: none; }
+  .compact .badge-room { font-size: calc(24 * var(--u)); }
+  .compact .badge-label { font-size: calc(8 * var(--u)); }
+  .compact { padding: calc(6 * var(--u)); }
+</style>
+</head>
+<body>
+  <h1>Pratinjau layout widget “Hari Ini”</h1>
+  <p class="lead">
+    Replika 1:1 dari <code>campus_widget.xml</code> setelah perubahan: teks jadwal di kolom kiri,
+    kode ruangan di badge hijau tua tersendiri di kanan, dengan label kecil “RUANGAN” di atasnya.
+    Data yang dipakai sama dengan screenshot Rabu, 11 Nov 2026.
+  </p>
+  <div class="toolbar">
+    <button type="button" data-scale="1" aria-pressed="false">Ukuran asli (1dp = 1px)</button>
+    <button type="button" data-scale="2" aria-pressed="true">Diperbesar (1dp = 2px)</button>
+    <button type="button" data-scale="3" aria-pressed="false">Sangat besar (1dp = 3px)</button>
+  </div>
+
+  <div class="grid">
+    <figure>
+      <div class="widget" style="width: calc(250 * var(--u)); height: calc(180 * var(--u));">
+        <div class="row">
+          <div class="col">
+            <div class="status">BERIKUTNYA · Rabu, 11 Nov 2026</div>
+            <div class="time">07:00–08:40</div>
+            <div class="course">Ketentuan Umum Perpajakan</div>
+            <div class="meta">Kelas 01</div>
+          </div>
+          <div class="badge">
+            <div class="badge-label">RUANGAN</div>
+            <div class="badge-room">A.3b.5</div>
+          </div>
+        </div>
+        <div class="next">
+          <div class="divider"></div>
+          <div class="row">
+            <div class="col">
+              <div class="status">BERIKUTNYA · Rabu, 11 Nov 2026</div>
+              <div class="next-time">10:40–12:20</div>
+              <div class="next-course">Bahasa Indonesia</div>
+            </div>
+            <div class="badge">
+              <div class="badge-label">RUANGAN</div>
+              <div class="badge-room">A.3b.2</div>
+            </div>
+          </div>
+        </div>
+        <div class="footer">
+          <span>Data 01:44</span>
+          <span class="spacer"></span>
+          <span>WIB</span>
+          <span class="clock">02:06:38</span>
+        </div>
+      </div>
+      <figcaption>4×2 standar · 250×180dp</figcaption>
+    </figure>
+
+    <figure>
+      <div class="widget" style="width: calc(320 * var(--u)); height: calc(250 * var(--u));">
+        <div class="row">
+          <div class="col">
+            <div class="status">BERIKUTNYA · Rabu, 11 Nov 2026</div>
+            <div class="time">07:00–08:40</div>
+            <div class="course">Ketentuan Umum Perpajakan</div>
+            <div class="meta">Kelas 01</div>
+          </div>
+          <div class="badge">
+            <div class="badge-label">RUANGAN</div>
+            <div class="badge-room">A.3b.5</div>
+          </div>
+        </div>
+        <div class="next">
+          <div class="divider"></div>
+          <div class="row">
+            <div class="col">
+              <div class="status">BERIKUTNYA · Rabu, 11 Nov 2026</div>
+              <div class="next-time">10:40–12:20</div>
+              <div class="next-course">Bahasa Indonesia</div>
+            </div>
+            <div class="badge">
+              <div class="badge-label">RUANGAN</div>
+              <div class="badge-room">A.3b.2</div>
+            </div>
+          </div>
+        </div>
+        <div class="footer">
+          <span>Data 01:44</span>
+          <span class="spacer"></span>
+          <span>WIB</span>
+          <span class="clock">02:06:38</span>
+        </div>
+      </div>
+      <figcaption>Widget diperbesar · 320×250dp</figcaption>
+    </figure>
+
+    <figure>
+      <div class="widget compact" style="width: calc(180 * var(--u)); height: calc(110 * var(--u));">
+        <div class="row">
+          <div class="col">
+            <div class="status">BERIKUTNYA · Rabu, 11 Nov 2026</div>
+            <div class="time">07:00–08:40</div>
+            <div class="course">Ketentuan Umum Perpajakan</div>
+          </div>
+          <div class="badge">
+            <div class="badge-label">RUANGAN</div>
+            <div class="badge-room">A.3b.5</div>
+          </div>
+        </div>
+        <div class="footer">
+          <span>Data 01:44</span>
+          <span class="spacer"></span>
+          <span>WIB</span>
+          <span class="clock">02:06:38</span>
+        </div>
+      </div>
+      <figcaption>Minimum sempit · 180×110dp (mode ringkas)</figcaption>
+    </figure>
+
+    <figure>
+      <div class="widget" style="width: calc(250 * var(--u)); height: calc(180 * var(--u));">
+        <div class="row">
+          <div class="col">
+            <div class="status">JADWAL KOSONG</div>
+            <div class="time">Belum ada jadwal</div>
+            <div class="course">Ketuk untuk membuka pengaturan</div>
+          </div>
+        </div>
+        <div class="footer">
+          <span>Data 01:44</span>
+          <span class="spacer"></span>
+          <span>WIB</span>
+          <span class="clock">02:06:38</span>
+        </div>
+      </div>
+      <figcaption>Status kosong: badge disembunyikan, tidak ada kode ruangan palsu</figcaption>
+    </figure>
+  </div>
+
+<script>
+  const buttons = document.querySelectorAll('.toolbar button');
+  buttons.forEach((button) => {
+    button.addEventListener('click', () => {
+      document.documentElement.style.setProperty('--u', button.dataset.scale + 'px');
+      buttons.forEach((other) => other.setAttribute('aria-pressed', String(other === button)));
+    });
+  });
+</script>
+</body>
+</html>
