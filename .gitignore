@@ -1,0 +1,28 @@
+# Local build output and caches
+.gradle/
+.kotlin/
+**/build/
+.externalNativeBuild/
+.cxx/
+
+# Local SDK and IDE settings
+local.properties
+.idea/
+*.iml
+.DS_Store
+Thumbs.db
+
+# Generated packages and private signing material
+*.apk
+*.aab
+*.apks
+*.jks
+*.keystore
+*.p12
+*.pfx
+ANDROID_KEY*.txt
+github-actions-secrets.env
+keystore.properties
+signing.properties
+.env
+.env.*
