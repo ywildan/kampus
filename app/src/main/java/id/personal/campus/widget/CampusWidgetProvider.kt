@@ -289,7 +289,6 @@ private object WidgetRenderer {
             val availableWidth = availableWidthDp?.let { (it * metrics.density).toInt().coerceAtLeast(1) } ?: widthPx
             val layout = StaticLayout.Builder.obtain(text, 0, text.length, paint(size, face), availableWidth)
                 .setIncludePad(false)
-                .setBreakStrategy(Layout.BREAK_STRATEGY_SIMPLE)
                 .setHyphenationFrequency(Layout.HYPHENATION_FREQUENCY_NONE)
                 .setMaxLines(if (oneLine) 1 else Int.MAX_VALUE)
                 .build()
