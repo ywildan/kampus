@@ -1,5 +1,6 @@
 package id.personal.campus.widget
 
+import android.app.PendingIntent
 import android.appwidget.AppWidgetManager
 import android.appwidget.AppWidgetProvider
 import android.content.BroadcastReceiver
@@ -98,6 +99,21 @@ private object WidgetRenderer {
     private const val ROOM_LABEL_SIZE = 8.5f
     private const val NEXT_ROOM_LABEL_SIZE = 8f
     private const val NEXT_TIME_SIZE = 16f
+    private const val ROW_COURSE_SIZE = 12f
+
+    /** Divider margins (8dp + 6dp) plus the 1dp rule that separates one row from the next. */
+    private const val ROW_TOP_SPACE = 15f
+
+    /** One remaining class of the day; measured once here, then handed to RemoteViews as is. */
+    private data class Row(
+        val occurrence: Occurrence,
+        val time: String,
+        val course: String,
+        val room: String,
+        val timeSize: Float,
+        val roomSize: Float,
+        val height: Float,
+    )
 
     fun render(
         context: Context,
@@ -140,14 +156,11 @@ private object WidgetRenderer {
         }.orEmpty()
         val hint = if (preview) "Atur semester untuk mengaktifkan jadwal" else ""
         // In a gap primary IS the first upcoming occurrence: do not repeat it as the next lesson.
-        val next = state.upcoming.firstOrNull { it.key != primary?.key }
-        val nextLabel = if (next != null) {
-            "${if (preview) "PRATINJAU BERIKUTNYA" else "BERIKUTNYA"} · ${next.start.format(dateFormat)}"
-        } else "Tidak ada kuliah berikutnya dalam semester"
-        // Room lives in its own right-hand badge, so it is no longer glued to the time string.
-        val nextTime = next?.let(::timeRange).orEmpty()
-        val nextRoom = next?.course?.room.orEmpty()
-        val nextCourse = next?.course?.name.orEmpty()
+        // Every other class of that same day gets its own row, so a three-class Wednesday keeps
+        // its last lesson instead of being cut off after the first one.
+        val secondary = primary?.let { main ->
+            state.upcoming.filter { it.key != main.key && it.start.toLocalDate() == main.start.toLocalDate() }
+        }.orEmpty()
         val dataTime = "Data ${state.now.format(timeFormat)}"
         val zone = zoneLabel(settings, state)
 
@@ -165,7 +178,6 @@ private object WidgetRenderer {
         var footerSize = 10f
         var timeSize = if (hasBadge) 22f else 20f
         var roomSize = if (hasBadge) 30f else 20f
-        var nextRoomSize = 22f
         var showCourse = true
 
         // Sizing priority: the room badge keeps the biggest type it can and the time takes what is
@@ -174,7 +186,6 @@ private object WidgetRenderer {
         val minTimeSize = 13f
         // A bigger card gives the extra width to the room code, not to the time.
         if (hasBadge) roomSize = (30f + (contentWidth - 230f) * 0.10f).coerceIn(30f, 44f)
-        if (nextRoom.isNotEmpty()) nextRoomSize = (22f + (contentWidth - 230f) * 0.06f).coerceIn(22f, 32f)
 
         /** Widest the badge may get before the time on a single line would no longer fit. */
         fun badgeCeiling(timeText: String, face: Typeface, share: Float): Float {
@@ -190,10 +201,8 @@ private object WidgetRenderer {
         )
 
         val primaryCeiling = badgeCeiling(time, monoBold, 0.62f)
-        val nextCeiling = badgeCeiling(nextTime, bold, 0.55f)
 
         fun primaryBadgeWidth(): Float = badgeWidth(room, roomSize, ROOM_LABEL_SIZE, primaryCeiling)
-        fun nextBadgeWidth(): Float = badgeWidth(nextRoom, nextRoomSize, NEXT_ROOM_LABEL_SIZE, nextCeiling)
 
         // Shrink the code only as far as the width demands, never below a readable floor.
         if (hasBadge) {
@@ -201,20 +210,11 @@ private object WidgetRenderer {
                 roomSize -= 0.5f
             }
         }
-        while (nextRoomSize > 13f && measure.width(nextRoom, nextRoomSize, bold) + BADGE_PAD_H * 2 > nextCeiling) {
-            nextRoomSize -= 0.5f
-        }
 
         fun leftWidth(): Float = if (hasBadge) {
             (contentWidth - primaryBadgeWidth() - COLUMN_GAP).coerceAtLeast(contentWidth * 0.40f)
         } else {
             contentWidth.toFloat()
-        }
-
-        fun nextLeftWidth(): Float = if (nextRoom.isEmpty()) {
-            contentWidth.toFloat()
-        } else {
-            (contentWidth - nextBadgeWidth() - COLUMN_GAP).coerceAtLeast(contentWidth * 0.40f)
         }
 
         // The room code is the hero: the time is fitted to the narrower text column instead.
@@ -272,36 +272,71 @@ private object WidgetRenderer {
             2 + measure.height(metadata, smallSize, regular, availableWidthDp = leftWidth())
         }
 
-        fun nextRowHeight(): Float {
-            if (next == null) return measure.height(nextLabel, smallSize, medium, availableWidthDp = leftWidth())
-            val width = nextLeftWidth()
-            val column = measure.height(nextLabel, smallSize, medium, availableWidthDp = width) + 2 +
-                measure.height(nextTime, NEXT_TIME_SIZE, bold, availableWidthDp = width)
-            val badge = badgeHeight(nextRoom, nextRoomSize, NEXT_ROOM_LABEL_SIZE, nextBadgeWidth())
-            return maxOf(column, badge)
+        // One row per remaining class of the day, measured with the same rule as the primary row:
+        // the room badge keeps the biggest readable code, the time takes the width that is left.
+        val rowRoomSize = (22f + (contentWidth - 230f) * 0.06f).coerceIn(22f, 32f)
+        val rows = secondary.map { occurrence ->
+            val rowRoom = occurrence.course.room.orEmpty()
+            val rowTime = timeRange(occurrence)
+            val ceiling = badgeCeiling(rowTime, bold, 0.55f)
+            var size = rowRoomSize
+            if (rowRoom.isNotEmpty()) {
+                while (size > 13f && measure.width(rowRoom, size, bold) + BADGE_PAD_H * 2 > ceiling) size -= 0.5f
+            }
+            val badge = badgeWidth(rowRoom, size, NEXT_ROOM_LABEL_SIZE, ceiling)
+            val column = if (rowRoom.isEmpty()) {
+                contentWidth.toFloat()
+            } else {
+                (contentWidth - badge - COLUMN_GAP).coerceAtLeast(contentWidth * 0.40f)
+            }
+            val fitted = measure.fitWidth(rowTime, NEXT_TIME_SIZE, 12f, bold, column)
+            val height = maxOf(
+                measure.height(rowTime, fitted, bold, availableWidthDp = column) + 2 +
+                    measure.height(
+                        occurrence.course.name,
+                        ROW_COURSE_SIZE,
+                        regular,
+                        oneLine = true,
+                        availableWidthDp = column,
+                    ),
+                if (rowRoom.isEmpty()) 0f else badgeHeight(rowRoom, size, NEXT_ROOM_LABEL_SIZE, badge),
+            )
+            Row(occurrence, rowTime, occurrence.course.name, rowRoom, fitted, size, height)
         }
-
-        val nextHeight = 15 + nextRowHeight()
-        // A typical 4×3 may offer only 180dp. Reserve room for its extra day/time/room first;
-        // the next course name is supplementary. Restore large core type if that still cannot fit.
-        if (primary != null && heightDp >= 180 && showCourse) {
+        // A typical 4×3 may offer only 180dp. Trim the primary type once so at least one remaining
+        // class stays visible; restore the large type when even that cannot buy a row.
+        if (rows.isNotEmpty() && primary != null && heightDp >= 180 && showCourse) {
             val originalTimeSize = timeSize
             val originalRoomSize = roomSize
-            while (baseHeight() + nextHeight > budget && (timeSize > 20f || roomSize > 20f)) {
+            while (baseHeight() + ROW_TOP_SPACE + rows.first().height > budget &&
+                (timeSize > 20f || roomSize > 20f)
+            ) {
                 if (timeSize > 20f) timeSize -= 1f
                 if (roomSize > 20f) roomSize -= 1f
             }
-            if (baseHeight() + nextHeight > budget) {
+            if (baseHeight() + ROW_TOP_SPACE + rows.first().height > budget) {
                 timeSize = originalTimeSize
                 roomSize = originalRoomSize
             }
         }
-        val showNext = primary != null && baseHeight() + nextHeight <= budget
-        val usedHeight = baseHeight() + (if (showNext) nextHeight else 0f)
+        // Add rows in schedule order and stop at the first one that no longer fits, so the list
+        // never shows a later class while hiding an earlier one.
+        var usedHeight = baseHeight()
+        val shownRows = rows.takeWhile { row ->
+            val fits = usedHeight + ROW_TOP_SPACE + row.height <= budget
+            if (fits) usedHeight += ROW_TOP_SPACE + row.height
+            fits
+        }
         val showMetadata = metadata.isNotEmpty() && usedHeight + metaHeight <= budget
-        val showNextCourse = next != null && showNext &&
-            usedHeight + (if (showMetadata) metaHeight else 0f) +
-                2 + measure.height(nextCourse, 12f, regular, oneLine = true, availableWidthDp = nextLeftWidth()) <= budget
+        val hiddenRows = rows.size - shownRows.size
+        val moreLabel = when {
+            hiddenRows > 0 -> "+$hiddenRows jadwal lagi hari ini"
+            rows.isEmpty() && primary != null -> "Tidak ada kuliah lagi hari ini"
+            else -> ""
+        }
+        val showMore = moreLabel.isNotEmpty() &&
+            usedHeight + (if (showMetadata) metaHeight else 0f) + 4 +
+                measure.height(moreLabel, smallSize, regular, oneLine = true) <= budget
 
         val pxPadding = (padding * metrics.density).toInt()
         views.setViewPadding(android.R.id.background, pxPadding, pxPadding, pxPadding, pxPadding)
@@ -313,11 +348,6 @@ private object WidgetRenderer {
         views.text(R.id.widget_course, course, courseSize)
         views.text(R.id.widget_metadata, metadata, smallSize)
         views.text(R.id.widget_hint, hint, smallSize)
-        views.text(R.id.widget_next_label, nextLabel, smallSize)
-        views.text(R.id.widget_next_time, nextTime, NEXT_TIME_SIZE)
-        views.text(R.id.widget_next_room, nextRoom, nextRoomSize)
-        views.text(R.id.widget_next_room_label, ROOM_LABEL, NEXT_ROOM_LABEL_SIZE)
-        views.text(R.id.widget_next_course, nextCourse, 12f)
         views.text(R.id.widget_data_time, dataTime, footerSize)
         views.text(R.id.widget_zone, zone, footerSize)
         views.setTextViewTextSize(R.id.widget_clock, TypedValue.COMPLEX_UNIT_SP, footerSize + 1)
@@ -327,24 +357,47 @@ private object WidgetRenderer {
         views.visible(R.id.widget_course, showCourse)
         views.visible(R.id.widget_metadata, showMetadata)
         views.visible(R.id.widget_hint, hint.isNotEmpty())
-        views.visible(R.id.widget_next_container, showNext)
-        views.visible(R.id.widget_next_time, next != null)
-        views.visible(R.id.widget_next_room_badge, next != null)
-        views.visible(R.id.widget_next_course, showNextCourse)
+        // RemoteViews cannot diff children, so the list is dropped and rebuilt on every update.
+        views.removeAllViews(R.id.widget_rows)
+        views.visible(R.id.widget_rows, shownRows.isNotEmpty())
+        views.text(R.id.widget_more, moreLabel, smallSize)
+        views.visible(R.id.widget_more, showMore)
         views.setContentDescription(R.id.widget_time, if (primary != null) "Jam kuliah $time" else time)
         views.setContentDescription(R.id.widget_room_badge, if (primary != null) "Ruang $room" else room)
         views.setContentDescription(R.id.widget_room_plain, room)
-        if (next != null) {
-            views.setContentDescription(R.id.widget_next_row, "$nextCourse · $nextTime · ruang $nextRoom")
-        }
         views.setContentDescription(R.id.widget_data_time, "Data diperbarui ${state.now.format(timeFormat)}")
         val openMain = if (primary != null && !preview) {
             ScheduleIntents.openCourse(context, primary.course.id)
         } else ScheduleIntents.openSettings(context)
         views.setOnClickPendingIntent(android.R.id.background, openMain)
+        shownRows.forEach { row -> views.addView(R.id.widget_rows, rowViews(context, row, preview, openMain)) }
+        return views
+    }
+
+    /** One list row: the room code keeps its own badge, mirroring the primary card. */
+    private fun rowViews(
+        context: Context,
+        row: Row,
+        preview: Boolean,
+        fallback: PendingIntent,
+    ): RemoteViews {
+        val views = RemoteViews(context.packageName, R.layout.campus_widget_secondary_row)
+        views.text(R.id.widget_row_time, row.time, row.timeSize)
+        views.text(R.id.widget_row_course, row.course, ROW_COURSE_SIZE)
+        views.text(R.id.widget_row_room, row.room, row.roomSize)
+        views.text(R.id.widget_row_room_label, ROOM_LABEL, NEXT_ROOM_LABEL_SIZE)
+        views.visible(R.id.widget_row_room_badge, row.room.isNotEmpty())
+        views.setContentDescription(
+            R.id.widget_row_root,
+            listOfNotNull(row.time, row.course, row.room.takeIf(String::isNotBlank)?.let { "ruang $it" })
+                .joinToString(" · "),
+        )
+        if (row.room.isNotEmpty()) {
+            views.setContentDescription(R.id.widget_row_room_badge, "Ruang ${row.room}")
+        }
         views.setOnClickPendingIntent(
-            R.id.widget_next_container,
-            if (next != null && !preview) ScheduleIntents.openCourse(context, next.course.id) else openMain,
+            R.id.widget_row_root,
+            if (preview) fallback else ScheduleIntents.openCourse(context, row.occurrence.course.id),
         )
         return views
     }
