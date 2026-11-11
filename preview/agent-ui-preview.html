@@ -62,12 +62,6 @@
     border: 1px solid var(--rule); background: transparent;
     border-radius: 999px; padding: 6px 12px; font-size: 12px; color: var(--green);
   }
-  .chip {
-    border: 1px solid var(--rule); border-radius: 999px;
-    padding: 6px 12px; font-size: 12px; color: var(--ink); background: transparent;
-    white-space: nowrap;
-  }
-  .chip.on { background: var(--green); border-color: var(--green); color: #fff; }
   .row { display: flex; align-items: center; gap: 8px; }
   .spacer { flex: 1 1 auto; }
   .divider { height: 1px; background: var(--rule); margin: 14px 0; }
@@ -80,7 +74,6 @@
   .bubble.bot { align-self: flex-start; background: #fff; border: 1px solid var(--rule); }
   .chat-body { display: flex; flex-direction: column; gap: 10px; flex: 1; }
   .chat-controls { border-top: 1px solid var(--rule); padding-top: 10px; display: flex; flex-direction: column; gap: 8px; }
-  .skill-row { display: flex; gap: 8px; overflow: hidden; padding: 0 4px; }
   .model-row { display: flex; align-items: center; gap: 10px; padding: 0 4px; }
   .model-btn {
     display: flex; align-items: center; gap: 6px;
@@ -189,7 +182,7 @@
         <div class="phone-pad">
           <div class="card small">
             <strong>Asisten AI</strong><br>
-            <span class="muted">Asisten hanya membaca data di aplikasi ini; setiap perubahan harus kamu setujui.</span>
+            <span class="muted">Tulis permintaan langsung; setiap perubahan menunggu persetujuan, kecuali /autoapproval aktif.</span>
           </div>
           <div class="chat-body">
             <div class="bubble user">Kelas berikutnya jam berapa?</div>
@@ -198,12 +191,6 @@
             </div>
           </div>
           <div class="chat-controls">
-            <div class="skill-row">
-              <span class="chip on">Semua</span>
-              <span class="chip">Jadwal</span>
-              <span class="chip">Tugas</span>
-              <span class="chip">Catatan</span>
-            </div>
             <div class="model-row">
               <span class="model-btn">Model · Hemat <span class="chev">▾</span></span>
               <span class="tiny muted">Cepat baca data → pintar menulis jawaban</span>
@@ -216,8 +203,9 @@
         </div>
       </div>
       <figcaption>
-        Baris model lama (teks dua model + switch "Selalu pakai model pintar") diganti satu tombol.
-        Ketuk → sheet mode. Pilihan berlaku untuk pesan berikutnya dan tidak mengubah setelan tersimpan.
+        Tanpa chip peran: agen menyimpulkan aksi dari pesan. Baris model diganti satu tombol yang
+        membuka sheet Hemat/Pintar/Cepat; pilihan berlaku untuk pesan berikutnya. Saat
+        <span class="mono">/autoapproval</span> aktif, banner peringatan tampil di atas baris model.
       </figcaption>
     </figure>
 
@@ -365,6 +353,8 @@
   <section class="notes">
     <h2>Catatan desain</h2>
     <ul>
+      <li>Tanpa chip skill: semua tool tersedia dan agen memilih aksinya dari permintaan user.</li>
+      <li><span class="mono">/autoapproval</span> menyalakan/mematikan persetujuan otomatis per sesi; banner tetap terlihat dan undo selalu tersedia.</li>
       <li>Satu sumber kebenaran per nilai: model dipilih lewat sheet, bukan kolom teks + dropdown sekaligus.</li>
       <li>Status koneksi tinggal di grup Penyedia; "Uji ulang" menguji isian yang terlihat di layar.</li>
       <li>Penyedia custom dikelola dari sheet penyedia dan ikut tersimpan lewat Simpan, bukan save diam-diam.</li>

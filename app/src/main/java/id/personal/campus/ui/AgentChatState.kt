@@ -1,8 +1,6 @@
 package id.personal.campus.ui
 
 import id.personal.campus.agent.AgentConfig
-import id.personal.campus.agent.AgentSkill
-import id.personal.campus.agent.AgentSkills
 import id.personal.campus.agent.AgentWriteProposal
 
 /**
@@ -35,6 +33,28 @@ fun AgentChatModelMode.resolveModels(config: AgentConfig): AgentModelSelection =
     AgentChatModelMode.HEMAT -> AgentModelSelection(config.effectiveFast, config.effectiveSmart)
     AgentChatModelMode.PINTAR -> AgentModelSelection(config.effectiveSmart, config.effectiveSmart)
     AgentChatModelMode.CEPAT -> AgentModelSelection(config.effectiveFast, config.effectiveFast)
+}
+
+/** Perintah lokal yang dijalankan aplikasi, tidak dikirim ke model. */
+internal sealed interface AgentChatCommand {
+    /** `enabled = null` berarti toggle status auto-approval saat ini. */
+    data class AutoApproval(val enabled: Boolean?) : AgentChatCommand
+}
+
+/**
+ * `/autoapproval` (toggle), `/autoapproval on`, `/autoapproval off`.
+ * Teks lain — termasuk slash command yang tidak dikenal — tetap dikirim sebagai pesan biasa.
+ */
+internal fun parseAgentCommand(text: String): AgentChatCommand? {
+    val parts = text.trim().split(Regex("\\s+"), limit = 2)
+    if (!parts.firstOrNull().orEmpty().equals("/autoapproval", ignoreCase = true)) return null
+    val argument = parts.getOrNull(1)?.trim()?.lowercase().orEmpty()
+    return when (argument) {
+        "" -> AgentChatCommand.AutoApproval(null)
+        "on" -> AgentChatCommand.AutoApproval(true)
+        "off" -> AgentChatCommand.AutoApproval(false)
+        else -> null
+    }
 }
 
 /** Satu langkah di panel "rencana aksi" (tool apa yang sedang/baru dijalankan). */
@@ -70,11 +90,12 @@ data class AgentSetup(
 data class AgentChatState(
     val messages: List<AgentChatMessage> = emptyList(),
     val input: String = "",
-    val skill: AgentSkill = AgentSkills.default,
     /** Status kesiapan konfigurasi; diisi ViewModel dari Setelan. */
     val setup: AgentSetup = AgentSetup(),
     /** Cara memilih model untuk pesan berikutnya; default mengikuti perilaku lama. */
     val modelMode: AgentChatModelMode = AgentChatModelMode.HEMAT,
+    /** Bila true, tool tulis langsung diterapkan tanpa kartu persetujuan (selama sesi ini). */
+    val autoApproveWrites: Boolean = false,
     val busy: Boolean = false,
     /** Terisi hanya saat kartu konfirmasi tampil; user wajib memilih Setuju/Batal. */
     val proposal: AgentWriteProposal? = null,
@@ -93,9 +114,9 @@ data class AgentChatState(
 /** Kejadian yang mengubah layar; dipetakan dari `AgentSessionEvent` + aksi user. */
 sealed interface AgentChatEvent {
     data class InputChanged(val text: String) : AgentChatEvent
-    data class SkillChosen(val skill: AgentSkill) : AgentChatEvent
     data class SetupChanged(val setup: AgentSetup) : AgentChatEvent
     data class ModelModeChosen(val mode: AgentChatModelMode) : AgentChatEvent
+    data class AutoApproveChanged(val enabled: Boolean) : AgentChatEvent
 
     /** Pesan singkat tanpa mengubah percakapan (mis. "belum siap", "tidak ada yang bisa dibatalkan"). */
     data class Notice(val text: String) : AgentChatEvent
@@ -146,11 +167,11 @@ object AgentChatReducer {
     fun reduce(state: AgentChatState, event: AgentChatEvent): AgentChatState = when (event) {
         is AgentChatEvent.InputChanged -> state.copy(input = event.text)
 
-        is AgentChatEvent.SkillChosen -> state.copy(skill = event.skill)
-
         is AgentChatEvent.SetupChanged -> state.copy(setup = event.setup)
 
         is AgentChatEvent.ModelModeChosen -> state.copy(modelMode = event.mode)
+
+        is AgentChatEvent.AutoApproveChanged -> state.copy(autoApproveWrites = event.enabled)
 
         is AgentChatEvent.Notice -> state.copy(notice = event.text)
 
@@ -165,8 +186,11 @@ object AgentChatReducer {
         )
 
         is AgentChatEvent.Token -> {
-            val id = state.streamingId() ?: return state.copy(busy = true)
-            state.updateMessage(id) { it.copy(text = it.text + event.text) }
+            // Jawaban teks murni tidak melewati ToolStarted, jadi balonnya belum ada.
+            // Tanpa ini seluruh token dibuang dan jawaban tanpa tool tidak pernah tampil.
+            val base = state.copy(messages = state.ensureStreaming())
+            val id = base.streamingId() ?: return base.copy(busy = true)
+            base.updateMessage(id) { it.copy(text = it.text + event.text) }
         }
 
         AgentChatEvent.ResetStream -> {
@@ -188,9 +212,10 @@ object AgentChatReducer {
         is AgentChatEvent.Applied -> state.copy(proposal = null, undoLabel = event.summary)
 
         is AgentChatEvent.Completed -> {
-            val id = state.streamingId()
+            val withBubble = state.copy(messages = state.ensureStreaming())
+            val id = withBubble.streamingId()
             val text = event.text.ifBlank { "Tidak ada jawaban yang bisa saya susun." }
-            val base = if (id == null) state else state.updateMessage(id) {
+            val base = if (id == null) withBubble else withBubble.updateMessage(id) {
                 it.copy(text = text, streaming = false, trace = event.trace)
             }
             base.copy(

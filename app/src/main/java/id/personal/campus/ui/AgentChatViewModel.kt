@@ -10,7 +10,6 @@ import id.personal.campus.agent.AgentRole
 import id.personal.campus.agent.AgentRunRequest
 import id.personal.campus.agent.AgentSession
 import id.personal.campus.agent.AgentSessionEvent
-import id.personal.campus.agent.AgentSkill
 import id.personal.campus.agent.AgentSnapshotSource
 import id.personal.campus.agent.AgentToolRegistry
 import id.personal.campus.agent.AgentTools
@@ -79,8 +78,6 @@ class AgentChatViewModel(application: Application) : AndroidViewModel(applicatio
 
     fun onInput(text: String) = reduce(AgentChatEvent.InputChanged(text))
 
-    fun chooseSkill(skill: AgentSkill) = reduce(AgentChatEvent.SkillChosen(skill))
-
     fun chooseModelMode(mode: AgentChatModelMode) = reduce(AgentChatEvent.ModelModeChosen(mode))
 
     fun consumeNotice() = reduce(AgentChatEvent.NoticeShown)
@@ -117,13 +114,18 @@ class AgentChatViewModel(application: Application) : AndroidViewModel(applicatio
         val text = mutableState.value.input.trim()
         if (text.isEmpty() || job?.isActive == true) return
 
+        parseAgentCommand(text)?.let { command ->
+            reduce(AgentChatEvent.InputChanged(""))
+            applyCommand(command)
+            return
+        }
+
         val setup = mutableState.value.setup
         if (!setup.ready) {
             reduce(AgentChatEvent.Notice(setup.problem ?: "Lengkapi Setelan Asisten AI dulu."))
             return
         }
 
-        val skill = mutableState.value.skill
         val mode = mutableState.value.modelMode
         // Nilai dibaca sekali di awal sesi supaya perubahan Setelan di tengah jalan tidak
         // membuat percakapan berpindah model tanpa disadari.
@@ -143,9 +145,11 @@ class AgentChatViewModel(application: Application) : AndroidViewModel(applicatio
                 messages = history.toList(),
                 toolModel = selection.toolModel,
                 answerModel = selection.answerModel,
-                skill = skill,
+                // Tanpa skill: registry mengirim semua tool, dan prompt dasar yang mengatur niat aksi.
                 zoneId = zoneId,
-                confirmWrite = { proposal -> awaitDecision(proposal) },
+                confirmWrite = { proposal ->
+                    if (mutableState.value.autoApproveWrites) true else awaitDecision(proposal)
+                },
             )
 
             try {
@@ -226,7 +230,9 @@ class AgentChatViewModel(application: Application) : AndroidViewModel(applicatio
                 reduce(AgentChatEvent.ToolFinished(event.name, event.cancelled))
 
             // Kartu juga dipasang di sini supaya tampil tepat saat keputusan diminta.
-            is AgentSessionEvent.WriteProposed -> reduce(AgentChatEvent.Proposed(event.proposal))
+            // Saat auto-approval aktif, kartu tidak perlu sempat berkedip.
+            is AgentSessionEvent.WriteProposed ->
+                if (!mutableState.value.autoApproveWrites) reduce(AgentChatEvent.Proposed(event.proposal))
 
             is AgentSessionEvent.WriteApplied -> reduce(AgentChatEvent.Applied(event.summary))
 
@@ -247,6 +253,24 @@ class AgentChatViewModel(application: Application) : AndroidViewModel(applicatio
                     detail = event.failure.detail.ifBlank { null },
                 ),
             )
+        }
+    }
+
+    private fun applyCommand(command: AgentChatCommand) {
+        when (command) {
+            is AgentChatCommand.AutoApproval -> {
+                val enabled = command.enabled ?: !mutableState.value.autoApproveWrites
+                reduce(AgentChatEvent.AutoApproveChanged(enabled))
+                reduce(
+                    AgentChatEvent.Notice(
+                        if (enabled) {
+                            "Auto-approval aktif: perubahan langsung disimpan dan tetap bisa dibatalkan."
+                        } else {
+                            "Auto-approval nonaktif: perubahan menunggu persetujuan."
+                        },
+                    ),
+                )
+            }
         }
     }
 

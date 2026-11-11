@@ -168,7 +168,6 @@ fun CampusApp(model: CampusViewModel, chatModel: AgentChatViewModel) {
                         2 -> AgentChatScreen(
                             state = chatModel.state.collectAsStateWithLifecycle().value,
                             onInput = chatModel::onInput,
-                            onSkill = chatModel::chooseSkill,
                             onModelMode = chatModel::chooseModelMode,
                             onSend = chatModel::send,
                             onStop = chatModel::stop,

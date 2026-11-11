@@ -2,7 +2,6 @@ package id.personal.campus.ui
 
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
-import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -18,7 +17,6 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
-import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -37,7 +35,6 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilledIconButton
-import androidx.compose.material3.FilterChip
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButtonDefaults
@@ -74,8 +71,6 @@ import com.mikepenz.markdown.m3.Markdown
 import com.mikepenz.markdown.m3.markdownColor
 import com.mikepenz.markdown.model.rememberMarkdownState
 import kotlinx.coroutines.launch
-import id.personal.campus.agent.AgentSkill
-import id.personal.campus.agent.AgentSkills
 import id.personal.campus.agent.AgentWriteKind
 import id.personal.campus.agent.AgentWriteProposal
 
@@ -94,14 +89,13 @@ import id.personal.campus.ui.AgentSetup
  *
  * Dua hal yang sengaja selalu terlihat:
  * 1. **Panel rencana aksi** — user tahu agen sedang membaca apa (bukan kotak hitam).
- * 2. **Kartu konfirmasi** — tidak ada perubahan data tanpa "Setuju", dan setelah tersimpan
- *    selalu tersedia tombol "Batalkan".
+ * 2. **Kartu konfirmasi** — perubahan data melewati "Setuju", kecuali `/autoapproval` aktif;
+ *    setelah tersimpan selalu tersedia tombol "Batalkan".
  */
 @Composable
 fun AgentChatScreen(
     state: AgentChatState,
     onInput: (String) -> Unit,
-    onSkill: (AgentSkill) -> Unit,
     onModelMode: (AgentChatModelMode) -> Unit,
     onSend: () -> Unit,
     onStop: () -> Unit,
@@ -128,7 +122,7 @@ fun AgentChatScreen(
             contentPadding = androidx.compose.foundation.layout.PaddingValues(16.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
-            if (state.messages.isEmpty()) item(key = "intro") { IntroCard(state.skill) }
+            if (state.messages.isEmpty()) item(key = "intro") { IntroCard() }
 
             if (!state.setup.ready) {
                 item(key = "setup") {
@@ -160,7 +154,7 @@ fun AgentChatScreen(
         }
 
         HorizontalDivider(color = Rule)
-        SkillPicker(state.skill, enabled = !state.busy && !state.awaitingDecision, onSkill = onSkill)
+        if (state.autoApproveWrites) AutoApprovalBanner()
         ModelModeRow(state, onModelMode)
         Composer(state, onInput = onInput, onSend = onSend, onStop = onStop)
         state.notice?.let { Notice(message = it, onDismiss = onConsumeNotice) }
@@ -168,15 +162,18 @@ fun AgentChatScreen(
 }
 
 @Composable
-private fun IntroCard(skill: AgentSkill) {
+private fun IntroCard() {
     PaperPanel {
         Text("Asisten AI", style = MaterialTheme.typography.titleLarge)
         Text(
-            "Tanya apa saja soal jadwal, tugas, dan catatanmu. Asisten hanya membaca data di " +
-                "aplikasi ini, dan setiap perubahan harus kamu setujui dulu.",
+            "Tanya apa saja soal jadwal, tugas, dan catatanmu — cukup tulis permintaannya, tanpa " +
+                "memilih peran. Setiap perubahan menunggu persetujuan, kecuali /autoapproval aktif.",
             color = MutedInk,
         )
-        Text("Peran sekarang: ${skill.label} — ${skill.hint}", color = CampusGreen)
+        Text(
+            "Contoh: \"buat tugas untuk Pengantar Akuntansi besok\".",
+            color = CampusGreen,
+        )
     }
 }
 
@@ -359,20 +356,24 @@ private fun ThinkingRow() {
 }
 
 @Composable
-private fun SkillPicker(skill: AgentSkill, enabled: Boolean, onSkill: (AgentSkill) -> Unit) {
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .horizontalScroll(rememberScrollState())
-            .padding(horizontal = 12.dp, vertical = 8.dp),
-        horizontalArrangement = Arrangement.spacedBy(8.dp),
+private fun AutoApprovalBanner() {
+    Surface(
+        color = MaterialTheme.colorScheme.errorContainer,
+        contentColor = MaterialTheme.colorScheme.onErrorContainer,
     ) {
-        AgentSkills.all.forEach { candidate ->
-            FilterChip(
-                selected = candidate.id == skill.id,
-                enabled = enabled,
-                onClick = { onSkill(candidate) },
-                label = { Text(candidate.label) },
+        Row(
+            modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Icon(
+                Icons.Outlined.WarningAmber,
+                contentDescription = null,
+                modifier = Modifier.size(16.dp),
+            )
+            Spacer(Modifier.width(8.dp))
+            Text(
+                "Auto-approval aktif: perubahan langsung disimpan. Kirim /autoapproval untuk mematikan.",
+                style = MaterialTheme.typography.bodySmall,
             )
         }
     }
