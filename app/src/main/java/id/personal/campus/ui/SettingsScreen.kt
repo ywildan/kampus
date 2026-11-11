@@ -32,6 +32,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
+import id.personal.campus.agent.AgentConfig
 import id.personal.campus.data.SettingsEntity
 import java.time.LocalDate
 
@@ -44,6 +45,9 @@ fun SettingsScreen(
     onSave: (SettingsEntity, () -> Unit) -> Unit,
     onPermissionResult: () -> Unit,
     onNotice: (String) -> Unit,
+    agent: AgentUiState,
+    onSaveAgent: (config: AgentConfig, newApiKey: String?, clearKey: Boolean) -> Unit,
+    onCheckAgent: (fetchModels: Boolean) -> Unit,
 ) {
     val context = LocalContext.current
     // Drafts are independent of the shared clock and survive tab switches/configuration changes.
@@ -168,6 +172,8 @@ fun SettingsScreen(
                 }, modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp),
             ) { Text(if (access.exactAllowed) "Tinjau akses alarm tepat waktu" else "Atur akses alarm tepat waktu") }
         }
+        AgentSettingsSection(agent, enabled = !busy, onSave = onSaveAgent, onCheck = onCheckAgent)
+
         SectionHeading("Batas yang perlu diketahui")
         Text("Pengingat tidak dapat dikirim saat HP mati atau aplikasi dipaksa berhenti (force-stop). Setelah membuka aplikasi kembali, jadwal diselaraskan; pengingat kuliah yang sudah mulai dilewati.")
         Text("Mode idle dan pembatasan Android dapat menunda alarm. Aplikasi tidak meminta pengecualian baterai dan tidak menjanjikan pengiriman tepat waktu dalam semua kondisi.")

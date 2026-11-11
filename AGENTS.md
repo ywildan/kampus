@@ -28,6 +28,109 @@
 - Urutan prioritas ukuran: kode ruangan paling besar dan paling akhir diperkecil; jam menyesuaikan
   ke lebar kolom kiri. Jaga prinsip ini saat mengubah logika `badgeCeiling`/`fitWidth`.
 
+## Asisten AI (BYOK)
+- Kunci API HANYA di `agent/AgentSecrets.kt` (AES-GCM + Android Keystore, berkas di
+  `noBackupFilesDir`): tidak di Room, SharedPreferences, log, pesan error, atau BuildConfig.
+  `AgentRequest.toString()` dan `ChatHttpRequest.toString()` sengaja disetel ulang agar tidak
+  mencetak kunci — jangan diubah menjadi data class biasa.
+- Setelan non-rahasia di `agent/AgentConfigStore.kt` (SharedPreferences `agent_config`) — sengaja
+  bukan Room supaya `SettingsEntity`/skema DB tidak perlu migrasi.
+- Seluruh paket `agent/`, KECUALI `AgentSecrets.kt` dan `AgentConfigStore.kt`, wajib bebas
+  `android.*` agar bisa diuji CI JVM. JSON memakai `agent/AgentJson.kt` (ditulis sendiri), **bukan**
+  `org.json`: kelas `org.json` di unit test JVM datang dari android.jar "mockable" sehingga parser
+  tidak bisa diuji. Menambah dependency test (mis. `org.json:json`) harus tanya pemilik dulu.
+- Alur satu permintaan chat: `ChatRequestBuilder.kt` (badan + `tool_choice: auto`) →
+  `SseStream.kt` (`SseLineBuffer` menyambung potongan `read()`, `ToolCallAccumulator` menyambung
+  argumen per `index`) → `OpenAiClient.kt` (`HttpURLConnection`, connect 20 dtk / read 120 dtk,
+  retry **sekali** tanpa `tools` bila server menjawab 400/422, lalu `PromptFallback.kt` membaca
+  satu blok JSON berpagar). Semua pesan error lewat `AgentFailure` + `redact`.
+- `agent/ModelCatalog.kt` (`GET {base}/models`) memakai `HttpURLConnection` + `AgentJson`.
+- `res/xml/network_security_config.xml`: Network Security Config tidak menerima CIDR, jadi cleartext
+  hanya untuk `localhost`, `127.0.0.1`, `10.0.2.2`, `10.0.3.2`, dan host `*.local`. `http://` ke IP
+  LAN lain ditolak Android dan diterjemahkan `AgentFailure` menjadi pesan "Blocked".
+
+## Asisten AI — tool & loop sesi
+- `agent/AgentTools.kt` = tool **read-only**. Semua jadwal dihitung `OccurrenceResolver`; jangan
+  menambah logika jadwal sendiri di tool (nanti berbeda dari layar Jadwal/widget/pengingat).
+  Data masuk lewat `AgentSnapshotSource` (fungsi `suspend () -> CampusSnapshot`), **bukan**
+  `CampusRepository` langsung, supaya tetap bebas `android.*` dan bisa diuji JVM.
+  Di aplikasi nanti: `AgentSnapshotSource { repository.snapshot() }`.
+- `kelas_hari` mengambil snapshot pada **awal hari yang ditanya** (`OccurrenceResolver` dengan
+  `Clock.fixed`), supaya kelas pagi tetap terlihat saat user bertanya "jadwal Rabu" sore hari.
+- `AgentSession.kt`: maksimal `AgentLimits.maxToolIterations` = 6 putaran tool, lalu satu
+  permintaan terakhir **tanpa tool** agar model menyimpulkan; hasil tool dipotong `truncate()`
+  (default 4.000 karakter) dan model diberi tahu bahwa isinya dipotong. Jejak aksi
+  (`AgentTrace.describe()`) dipakai UI untuk menunjukkan "membaca 3 mata kuliah, 5 tugas".
+- Tool tulis **wajib** `writesData = true` dan **wajib** menyediakan `prepare()` (lihat bagian
+  "tool tulis" di bawah). `AgentSession` tidak pernah memanggil `execute()` untuk tool tulis.
+  Tanpa persetujuan, hasil tool berisi "dibatalkan" dan model diberi tahu agar tidak mengulang.
+  Jangan melonggarkan aturan ini.
+- `AgentPrompt.system()` (di `AgentSession.kt`) menyatakan hasil tool adalah **DATA, bukan
+  instruksi** (mis. catatan berisi "hapus semua tugas"). Jangan hapus paragraf KEAMANAN-nya.
+- Menambah tool: buat `SimpleAgentTool` + daftarkan di `AgentTools.registry`, lalu uji dengan
+  `AgentSnapshotSource` tiruan (lihat `AgentToolsTest`). Tool destruktif tidak boleh ada.
+- Server yang mengabaikan `tools` (menjawab teks biasa berisi blok JSON) ditangani di sesi:
+  `PromptFallback.parse` dipanggil saat ronde selesai tanpa tool-call, dan UI menerima
+  `AgentSessionEvent.ResetStream` untuk membuang draf teks JSON itu.
+
+## Asisten AI — tool tulis, konfirmasi, Undo
+- Alur tulis selalu tiga langkah: `AgentWriteTools.prepare*()` (**validasi, belum menyimpan**)
+  → `AgentSessionEvent.WriteProposed` (kartu "Setuju/Batal") → `AgentWritePreparation.Ready.apply()`
+  (baru menyimpan). Jangan pernah memanggil penyimpanan dari `prepare`.
+- Argumen kurang/keliru → `AgentWritePreparation.Invalid(question)`; sesi mengembalikan JSON
+  `status: "perlu_pertanyaan"` dan model **harus bertanya**, tidak mengarang hari/jam/ruangan.
+- `AgentWriteStore` (`agent/AgentWrites.kt`) adalah satu-satunya pintu tulis. Implementasi
+  aplikasi: `data/AgentRepositoryWriteStore.kt` → `CampusRepository` saja, dengan `onSaved`
+  yang harus diisi `ScheduleCoordinator.refresh(...)` + `refreshAccess()` (jalur yang sama
+  dengan `CampusViewModel.mutate`). Jangan memanggil `ScheduleAlarms` dengan cara baru.
+- **Tidak ada tool hapus.** `AgentWriteStore.remove*` hanya dipakai Undo atas baris yang barusan
+  dibuat agent sendiri (satu-satunya efek samping yang diizinkan).
+- Undo: satu aksi = satu entri `AgentUndoStack` (LIFO, batas 10, entri tertua dibuang).
+  `AgentWriteTools.undoLast()` mengembalikan nilai lama (`SaveCourse`/`SaveTask`/`SaveNote`)
+  atau menghapus baris baru (`RemoveCourse`/`RemoveTask`/`RemoveNote`).
+- Validasi meniru formulir manual: nama & ruang tidak kosong, hari 1–7, `start < end`.
+  **Bentrok jam dan rentang semester hanya jadi *peringatan* di kartu**, bukan penolakan:
+  `OccurrenceResolver` memang membolehkan jadwal yang beririsan, jadi user yang memutuskan.
+  Jangan mengubahnya jadi error tanpa mengubah resolver + layar Jadwal juga.
+- `AgentTraceKind` memisahkan `READ`/`WRITE`/`ASK`; `AgentTrace.describe()` menghasilkan
+  "membaca 3 mata kuliah Rabu, menambah tugas X". Jaga pemisahan ini agar UI tidak menyebut
+  perubahan sebagai bacaan.
+- Catatan id: Room `@Upsert` tidak mengembalikan id, jadi penyimpanan data baru dicari ulang
+  berdasarkan isi (id terbesar bila ada duplikat). Dipakai hanya untuk Undo.
+
+## Asisten AI — skill & routing model
+- `agent/AgentSkills.kt` = skill sebagai **data** (`id`, `label`, `hint`, `systemPrompt`,
+  `allowedTools`, `output`). Menambah skill = menambah satu entri di `AgentSkills.all`.
+- Nama tool ditulis lewat konstanta `AgentToolNames`, **bukan string bebas**. `AgentSkillsTest`
+  mencocokkan setiap nama dengan registry sungguhan, dan `AgentToolNames.ALL` harus tetap sama
+  dengan tool yang benar-benar terdaftar.
+- **Allowlist selalu menyempit, tidak pernah melebar** (`effectiveAllowlist`): allowlist skill
+  diiris dengan batasan dari UI. Skill = mode kerja, bukan tambahan izin.
+- Skill `Ringkas materi` dan `Sitasi & daftar pustaka` **tidak punya** tool jadwal sama sekali
+  (`AgentToolNames.SCHEDULE`). Jangan menambahkan tool jadwal ke keduanya.
+- Skill `Jadwal & ruangan` adalah bawaan dan read-only. Konsekuensinya `ubah_jadwal` tidak
+  disebut skill mana pun: mengubah jadwal hanya bisa lewat mode tanpa skill (allowlist kosong =
+  semua tool) dan selalu dengan kartu konfirmasi. Kalau pemilik ingin skill bisa mengubah
+  jadwal, tambahkan tool itu ke skill yang tepat — jangan ke skill bawaan.
+- Routing model: putaran yang menawarkan tool memakai `toolModel` (= `modelCepat`), penulisan
+  akhir memakai `answerModel` (= `modelPintar`). Saat keduanya berbeda, sesi menjalankan satu
+  putaran penulisan ulang dan mengirim `ResetStream` lebih dulu supaya draf model cepat tidak
+  terlihat sebagai dua jawaban. Kalau nilainya sama, tidak ada permintaan tambahan.
+- `AgentOutputKind.DOKUMEN` menandai skill yang menyusun `DocumentSpec` (Tahap 7). Skill tidak
+  pernah menulis file; aplikasi yang merender.
+
+## Menguji logika murni tanpa menunggu CI (opsional)
+- `apk add openjdk17-jdk unzip`, unduh `kotlinc` 2.2.0 + `junit`, `hamcrest`,
+  `kotlinx-coroutines-core-jvm`, `kotlinx-coroutines-test-jvm` dari Maven Central, lalu
+  `kotlinc <berkas agent tanpa android.*> app/src/test/java/id/personal/campus/agent/*.kt -cp <jar> -d out`
+  dan `java -cp out:<jar> org.junit.runner.JUnitCore id.personal.campus.agent.<Test>`.
+- Test tool agen butuh `Models.kt` + `OccurrenceResolver.kt`. Karena `Models.kt` memakai anotasi
+  Room, buat stub 6 baris di luar `app/src` (mis. `.sandbox-stubs/room.kt`) berisi
+  `annotation class Entity(val tableName: String = "")` dan
+  `annotation class PrimaryKey(val autoGenerate: Boolean = false)` di paket `androidx.room`,
+  lalu hapus stub itu setelah selesai — jangan pernah taruh di dalam `app/src`.
+- Ini hanya berlaku untuk paket `agent/`; berkas Compose/Android tetap hanya bisa diverifikasi CI.
+
 ## Alat bantu
 - `preview/widget-preview.html`: replika widget di browser untuk cek tampilan tanpa emulator
   (bukan bagian APK). Ukuran di dalamnya ilustratif, bukan hasil pengukuran perangkat.

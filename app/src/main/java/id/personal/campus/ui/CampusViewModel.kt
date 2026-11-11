@@ -12,6 +12,12 @@ import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.viewModelScope
 import id.personal.campus.CampusApplication
+import id.personal.campus.agent.AgentConfig
+import id.personal.campus.agent.AgentResult
+import id.personal.campus.agent.AgentUrlResult
+import id.personal.campus.agent.ModelCatalog
+import id.personal.campus.agent.normalizeBaseUrl
+import id.personal.campus.agent.sanitized
 import id.personal.campus.data.CampusSnapshot
 import id.personal.campus.data.CourseEntity
 import id.personal.campus.data.NoteEntity
@@ -21,6 +27,7 @@ import id.personal.campus.reminder.ScheduleCoordinator
 import id.personal.campus.schedule.OccurrenceResolver
 import id.personal.campus.schedule.ScheduleSnapshot
 import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -30,6 +37,7 @@ import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 /** Channel absence is not a denial: the coordinator creates it on reconciliation. */
 data class ReminderAccess(
@@ -57,6 +65,8 @@ class CampusViewModel(application: Application, private val savedState: SavedSta
     private val resolver = OccurrenceResolver()
     private val mutableState = MutableStateFlow(CampusUiState())
     val state = mutableState.asStateFlow()
+    private val mutableAgent = MutableStateFlow(AgentUiState())
+    val agent = mutableAgent.asStateFlow()
     private val messages = Channel<String>(Channel.BUFFERED)
     val notices = messages.receiveAsFlow()
     val navigation: StateFlow<String?> = savedState.getStateFlow("external_destination", null)
@@ -64,6 +74,7 @@ class CampusViewModel(application: Application, private val savedState: SavedSta
 
     init {
         load()
+        loadAgentConfiguration()
     }
 
     fun load() {
@@ -219,5 +230,96 @@ class CampusViewModel(application: Application, private val savedState: SavedSta
             return
         }
         mutate({ repository.saveSettings(settings) }, onSaved)
+    }
+
+    private fun loadAgentConfiguration() {
+        viewModelScope.launch {
+            val stored = withContext(Dispatchers.IO) {
+                app.agentConfigStore.load() to app.agentSecrets.hasKey()
+            }
+            mutableAgent.update {
+                it.copy(config = stored.first, hasKey = stored.second, loaded = true)
+            }
+        }
+    }
+
+    /**
+     * Simpan setelan Asisten AI.
+     *
+     * [newApiKey] kosong/`null` = kunci lama tidak diubah, [clearKey] = hapus kunci.
+     * Kunci tidak pernah masuk state UI, notifikasi, log, atau pesan error.
+     */
+    fun saveAgent(config: AgentConfig, newApiKey: String?, clearKey: Boolean, onSaved: () -> Unit = {}) {
+        val candidate = config.sanitized()
+        val url = normalizeBaseUrl(candidate.baseUrl)
+        if (url is AgentUrlResult.Invalid) {
+            mutableAgent.update { it.copy(message = url.message, messageOk = false, detail = null) }
+            return
+        }
+        if (mutableAgent.value.busy) return
+        mutableAgent.update { it.copy(busy = true, message = null, detail = null) }
+        viewModelScope.launch {
+            try {
+                val normalized = candidate.copy(baseUrl = url.baseUrl)
+                val hasKey = withContext(Dispatchers.IO) {
+                    app.agentConfigStore.save(normalized)
+                    when {
+                        clearKey -> app.agentSecrets.clearKey()
+                        !newApiKey.isNullOrBlank() -> app.agentSecrets.saveKey(newApiKey)
+                    }
+                    app.agentSecrets.hasKey()
+                }
+                mutableAgent.update {
+                    it.copy(
+                        config = normalized, hasKey = hasKey, busy = false, messageOk = true,
+                        message = "Setelan Asisten AI tersimpan.", detail = null,
+                    )
+                }
+                onSaved()
+            } catch (cancelled: CancellationException) {
+                throw cancelled
+            } catch (_: Exception) {
+                mutableAgent.update {
+                    it.copy(
+                        busy = false, messageOk = false, detail = null,
+                        message = "Setelan Asisten AI belum tersimpan. Periksa alamat server, lalu coba lagi.",
+                    )
+                }
+            }
+        }
+    }
+
+    /** [fetchModels] `true` mengisi daftar model; `false` hanya menguji koneksi. */
+    fun checkAgent(fetchModels: Boolean) {
+        val url = normalizeBaseUrl(mutableAgent.value.config.baseUrl)
+        if (url is AgentUrlResult.Invalid) {
+            mutableAgent.update { it.copy(message = url.message, messageOk = false, detail = null) }
+            return
+        }
+        if (mutableAgent.value.busy) return
+        mutableAgent.update { it.copy(busy = true, message = null, detail = null) }
+        viewModelScope.launch {
+            val key = withContext(Dispatchers.IO) { app.agentSecrets.loadKey() }
+            when (val result = ModelCatalog.listModels(url.baseUrl, key)) {
+                is AgentResult.Success -> mutableAgent.update {
+                    it.copy(
+                        busy = false, messageOk = true, detail = null,
+                        models = if (fetchModels) result.value else it.models,
+                        message = if (result.value.isEmpty()) {
+                            "Server menjawab (200) tetapi tidak mengirim daftar model. Nama model bisa diisi manual."
+                        } else {
+                            "Koneksi berhasil (200). ${result.value.size} model tersedia."
+                        },
+                    )
+                }
+                is AgentResult.Failure -> mutableAgent.update {
+                    it.copy(
+                        busy = false, messageOk = false,
+                        message = result.failure.message,
+                        detail = result.failure.detail.ifBlank { null },
+                    )
+                }
+            }
+        }
     }
 }

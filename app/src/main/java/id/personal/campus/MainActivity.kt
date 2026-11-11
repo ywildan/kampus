@@ -11,6 +11,8 @@ import androidx.activity.viewModels
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
+import androidx.lifecycle.viewmodel.compose.viewModel
+import id.personal.campus.ui.AgentChatViewModel
 import id.personal.campus.ui.CampusApp
 import id.personal.campus.ui.CampusTheme
 import id.personal.campus.ui.CampusViewModel
@@ -27,7 +29,7 @@ class MainActivity : ComponentActivity() {
             navigationBarStyle = SystemBarStyle.light(Color.TRANSPARENT, Color.TRANSPARENT),
         )
         if (savedInstanceState == null) consumeIntent(intent)
-        setContent { CampusTheme { CampusApp(model) } }
+        setContent { CampusTheme { CampusApp(model, chatModel = viewModel()) } }
         lifecycleScope.launch {
             repeatOnLifecycle(Lifecycle.State.RESUMED) {
                 model.onForeground()

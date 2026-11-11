@@ -19,6 +19,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.CalendarMonth
 import androidx.compose.material.icons.outlined.Checklist
 import androidx.compose.material.icons.outlined.Settings
+import androidx.compose.material.icons.outlined.SmartToy
 import androidx.compose.material.icons.outlined.Today
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
@@ -54,9 +55,14 @@ import id.personal.campus.data.NoteEntity
 import id.personal.campus.data.TaskEntity
 import kotlinx.coroutines.flow.collect
 
+// Tab Asisten
+import id.personal.campus.ui.AgentChatScreen
+import id.personal.campus.ui.AgentChatViewModel
+
 @Composable
-fun CampusApp(model: CampusViewModel) {
+fun CampusApp(model: CampusViewModel, chatModel: AgentChatViewModel) {
     val state by model.state.collectAsStateWithLifecycle()
+    val agentState by model.agent.collectAsStateWithLifecycle()
     val navigation by model.navigation.collectAsStateWithLifecycle()
     val lifecycleOwner = LocalLifecycleOwner.current
     val snackbar = remember { SnackbarHostState() }
@@ -96,8 +102,8 @@ fun CampusApp(model: CampusViewModel) {
         contentWindowInsets = WindowInsets.safeDrawing,
         snackbarHost = { if (!modalOpen) SnackbarHost(snackbar) },
         bottomBar = {
-            val labels = listOf("Hari Ini", "Jadwal", "Tugas", "Pengaturan")
-            val icons = listOf(Icons.Outlined.Today, Icons.Outlined.CalendarMonth, Icons.Outlined.Checklist, Icons.Outlined.Settings)
+            val labels = listOf("Hari Ini", "Jadwal", "Tugas", "Pengaturan", "Asisten")
+            val icons = listOf(Icons.Outlined.Today, Icons.Outlined.CalendarMonth, Icons.Outlined.Checklist, Icons.Outlined.Settings, Icons.Outlined.SmartToy)
             Surface(color = Paper, tonalElevation = 0.dp, shadowElevation = 0.dp) {
                 Column(Modifier.navigationBarsPadding().windowInsetsPadding(WindowInsets.safeDrawing.only(WindowInsetsSides.Horizontal))) {
                     HorizontalDivider(color = Rule)
@@ -159,7 +165,30 @@ fun CampusApp(model: CampusViewModel) {
                         3 -> SettingsScreen(data.settings, state.access, state.saving,
                             today = checkNotNull(state.schedule).now.toLocalDate(),
                             onSave = { settings, done -> model.saveSettings(settings, done) },
-                            onPermissionResult = { model.onForeground() }, onNotice = model::notify)
+                            onPermissionResult = { model.onForeground() }, onNotice = model::notify,
+                            agent = agentState,
+                            onSaveAgent = { config, newKey, clear -> model.saveAgent(config, newKey, clear) },
+                            onCheckAgent = { fetchModels -> model.checkAgent(fetchModels) })
+                        4 -> AgentChatScreen(
+                            state = chatModel.state.collectAsStateWithLifecycle().value,
+                            onInput = chatModel::onInput,
+                            onSkill = chatModel::chooseSkill,
+                            onSmartToggle = chatModel::toggleSmartModel,
+                            onSend = chatModel::send,
+                            onStop = chatModel::stop,
+                            onApprove = chatModel::approve,
+                            onDeny = chatModel::deny,
+                            onUndo = chatModel::undoLastWrite,
+                            onConsumeNotice = chatModel::consumeNotice,
+                            onOpenSettings = { tab = 3 },
+                            onRefreshSetup = chatModel::refreshSetup,
+                        )
+                            today = checkNotNull(state.schedule).now.toLocalDate(),
+                            onSave = { settings, done -> model.saveSettings(settings, done) },
+                            onPermissionResult = { model.onForeground() }, onNotice = model::notify,
+                            agent = agentState,
+                            onSaveAgent = { config, newKey, clear -> model.saveAgent(config, newKey, clear) },
+                            onCheckAgent = { fetchModels -> model.checkAgent(fetchModels) })
                     }
                 }
             }
