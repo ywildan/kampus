@@ -256,11 +256,14 @@ class CampusViewModel(application: Application, private val savedState: SavedSta
             mutableAgent.update { it.copy(message = url.message, messageOk = false, detail = null) }
             return
         }
+        // Smart cast ke Valid hilang di dalam launch (lambda non-inline),
+        // jadi ambil baseUrl yang sudah tervalidasi di sini.
+        val validBaseUrl = (url as AgentUrlResult.Valid).baseUrl
         if (mutableAgent.value.busy) return
         mutableAgent.update { it.copy(busy = true, message = null, detail = null) }
         viewModelScope.launch {
             try {
-                val normalized = candidate.copy(baseUrl = url.baseUrl)
+                val normalized = candidate.copy(baseUrl = validBaseUrl)
                 val hasKey = withContext(Dispatchers.IO) {
                     app.agentConfigStore.save(normalized)
                     when {
@@ -296,11 +299,14 @@ class CampusViewModel(application: Application, private val savedState: SavedSta
             mutableAgent.update { it.copy(message = url.message, messageOk = false, detail = null) }
             return
         }
+        // Smart cast ke Valid hilang di dalam launch (lambda non-inline),
+        // jadi ambil baseUrl yang sudah tervalidasi di sini.
+        val validBaseUrl = (url as AgentUrlResult.Valid).baseUrl
         if (mutableAgent.value.busy) return
         mutableAgent.update { it.copy(busy = true, message = null, detail = null) }
         viewModelScope.launch {
             val key = withContext(Dispatchers.IO) { app.agentSecrets.loadKey() }
-            when (val result = ModelCatalog.listModels(url.baseUrl, key)) {
+            when (val result = ModelCatalog.listModels(validBaseUrl, key)) {
                 is AgentResult.Success -> mutableAgent.update {
                     it.copy(
                         busy = false, messageOk = true, detail = null,

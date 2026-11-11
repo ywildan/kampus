@@ -183,12 +183,6 @@ fun CampusApp(model: CampusViewModel, chatModel: AgentChatViewModel) {
                             onOpenSettings = { tab = 3 },
                             onRefreshSetup = chatModel::refreshSetup,
                         )
-                            today = checkNotNull(state.schedule).now.toLocalDate(),
-                            onSave = { settings, done -> model.saveSettings(settings, done) },
-                            onPermissionResult = { model.onForeground() }, onNotice = model::notify,
-                            agent = agentState,
-                            onSaveAgent = { config, newKey, clear -> model.saveAgent(config, newKey, clear) },
-                            onCheckAgent = { fetchModels -> model.checkAgent(fetchModels) })
                     }
                 }
             }
