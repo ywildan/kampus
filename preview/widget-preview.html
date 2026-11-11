@@ -145,6 +145,26 @@
   .footer .spacer { flex: 1 1 auto; }
   .footer .clock { font-family: "Roboto Mono", monospace; font-size: calc(11 * var(--u)); color: #14161A; }
 
+  /* Launcher-driven countdown; replaces the "Data" stamp while it is visible. */
+  .countdown { display: flex; align-items: center; gap: calc(6 * var(--u)); }
+  .countdown-label {
+    font-size: calc(8.5 * var(--u));
+    font-weight: 500;
+    letter-spacing: 0.08em;
+    color: #2F6B4F;
+    line-height: 1.2;
+    white-space: nowrap;
+  }
+  .countdown-clock {
+    font-family: "Roboto Mono", monospace;
+    font-weight: 700;
+    font-size: calc(12 * var(--u));
+    line-height: 1.2;
+    color: #14161A;
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+  }
+
   /* Compact variant: what a 2×2 / 110dp widget collapses to */
   .compact .next { display: none; }
   .compact .status { font-size: calc(10 * var(--u)); }
@@ -162,8 +182,10 @@
     Replika 1:1 dari <code>campus_widget.xml</code> setelah perubahan: teks jadwal di kolom kiri,
     kode ruangan di badge hijau tua tersendiri di kanan, dengan label kecil “RUANGAN” di atasnya.
     Setiap sisa jadwal di hari yang sama dapat barisnya sendiri (dulu hanya satu baris), dan bila
-    tidak muat, sisa itu diringkas jadi “+N jadwal lagi hari ini”. Data yang dipakai sama dengan
-    screenshot Rabu, 11 Nov 2026 — tiga kelas: A.3b.5, A.3b.2, dan A.3b.6.
+    tidak muat, sisa itu diringkas jadi “+N jadwal lagi hari ini”. Footer menampilkan hitung mundur
+    live ke jam mulai (Chronometer yang digerakkan launcher, bukan refresh widget) dan menyembunyikan
+    “Data” selama timer tampil; bila footer terlalu sempit, timer disembunyikan dan “Data” kembali.
+    Data yang dipakai sama dengan screenshot Rabu, 11 Nov 2026 — tiga kelas: A.3b.5, A.3b.2, dan A.3b.6.
   </p>
   <div class="toolbar">
     <button type="button" data-scale="1" aria-pressed="false">Ukuran asli (1dp = 1px)</button>
@@ -201,7 +223,10 @@
         </div>
         <div class="more">+1 jadwal lagi hari ini</div>
         <div class="footer">
-          <span>Data 01:44</span>
+          <span class="countdown">
+            <span class="countdown-label">MULAI DALAM</span>
+            <span class="countdown-clock">04:53:22</span>
+          </span>
           <span class="spacer"></span>
           <span>WIB</span>
           <span class="clock">02:06:38</span>
@@ -251,7 +276,10 @@
           </div>
         </div>
         <div class="footer">
-          <span>Data 01:44</span>
+          <span class="countdown">
+            <span class="countdown-label">MULAI DALAM</span>
+            <span class="countdown-clock">04:53:22</span>
+          </span>
           <span class="spacer"></span>
           <span>WIB</span>
           <span class="clock">02:06:38</span>
@@ -280,7 +308,7 @@
           <span class="clock">02:06:38</span>
         </div>
       </div>
-      <figcaption>Minimum sempit · 180×110dp (mode ringkas)</figcaption>
+      <figcaption>Minimum sempit · 180×110dp (mode ringkas) — footer tidak cukup untuk timer, jadi “Data” tetap tampil</figcaption>
     </figure>
 
     <figure>

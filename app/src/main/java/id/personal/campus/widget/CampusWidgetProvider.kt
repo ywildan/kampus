@@ -9,6 +9,7 @@ import android.content.Context
 import android.content.Intent
 import android.graphics.Typeface
 import android.os.Bundle
+import android.os.SystemClock
 import android.text.Layout
 import android.text.StaticLayout
 import android.text.TextPaint
@@ -22,6 +23,7 @@ import id.personal.campus.reminder.refreshScheduleAsync
 import id.personal.campus.schedule.Occurrence
 import id.personal.campus.schedule.ScheduleMode
 import id.personal.campus.schedule.ScheduleSnapshot
+import java.time.ZonedDateTime
 import java.time.format.DateTimeFormatter
 import java.util.Locale
 
@@ -79,6 +81,34 @@ class WidgetBoundaryReceiver : BroadcastReceiver() {
     }
 }
 
+/**
+ * What the widget's Chronometer should count towards. The launcher ticks it every second, so the
+ * widget only recomputes this when it actually repaints (boundaries, midnight, edits, boot).
+ */
+internal data class WidgetCountdown(
+    val target: ZonedDateTime,
+    val remainingMillis: Long,
+    val active: Boolean,
+) {
+    val label: String get() = if (active) "SISA" else "MULAI DALAM"
+}
+
+/** Upcoming classes count down to their start, a class in progress to its end. */
+internal fun widgetCountdown(
+    state: ScheduleSnapshot,
+    nowMillis: Long = System.currentTimeMillis(),
+): WidgetCountdown? {
+    val primary = state.primary ?: return null
+    val active = state.active.isNotEmpty()
+    val target = if (active) primary.end else primary.start
+    val remaining = target.toInstant().toEpochMilli() - nowMillis
+    if (remaining !in 1..COUNTDOWN_MAX_MILLIS) return null
+    return WidgetCountdown(target, remaining, active)
+}
+
+/** A day is as far as a second-by-second timer still reads as "berapa lama lagi". */
+private const val COUNTDOWN_MAX_MILLIS = 24L * 60 * 60 * 1000
+
 /** Presentation only: occurrences, overlap ordering and semester boundaries come from the resolver. */
 private object WidgetRenderer {
     private val locale = Locale.forLanguageTag("id-ID")
@@ -100,6 +130,10 @@ private object WidgetRenderer {
     private const val NEXT_ROOM_LABEL_SIZE = 8f
     private const val NEXT_TIME_SIZE = 16f
     private const val ROW_COURSE_SIZE = 12f
+    // Mirrors the 8.5sp label, 12sp clock and 6dp gap in campus_widget.xml.
+    private const val COUNTDOWN_LABEL_SIZE = 8.5f
+    private const val COUNTDOWN_SIZE = 12f
+    private const val COUNTDOWN_GAP = 6f
 
     /** Divider margins (8dp + 6dp) plus the 1dp rule that separates one row from the next. */
     private const val ROW_TOP_SPACE = 15f
@@ -163,6 +197,7 @@ private object WidgetRenderer {
         }.orEmpty()
         val dataTime = "Data ${state.now.format(timeFormat)}"
         val zone = zoneLabel(settings, state)
+        val countdown = widgetCountdown(state)
 
         // Measure the real font-scaled text, not just width or a hard-coded 4×2/4×3 threshold.
         // Compact mode sacrifices optional details before shrinking the prominent time and room.
@@ -217,19 +252,41 @@ private object WidgetRenderer {
             contentWidth.toFloat()
         }
 
+        fun countdownWidth(target: WidgetCountdown): Float =
+            measure.width(target.label, COUNTDOWN_LABEL_SIZE, medium) + COUNTDOWN_GAP +
+                measure.width("00:00:00", COUNTDOWN_SIZE, monoBold)
+
+        // The timer shares the footer with the zone and live clock, so it only appears when it
+        // still fits next to them at the smallest footer type.
+        var showCountdown = countdown?.let {
+            countdownWidth(it) + measure.width(zone, 7f, regular) + 6 +
+                measure.width("00:00:00", 8f, Typeface.MONOSPACE) <= contentWidth
+        } ?: false
+
         // The room code is the hero: the time is fitted to the narrower text column instead.
         timeSize = measure.fitWidth(time, timeSize, 13f, monoBold, leftWidth())
 
-        fun footerWidth(): Float = measure.width(dataTime, footerSize, regular) +
+        fun footerLeftWidth(): Float = if (showCountdown && countdown != null) {
+            countdownWidth(countdown)
+        } else {
+            measure.width(dataTime, footerSize, regular)
+        }
+
+        fun footerWidth(): Float = footerLeftWidth() +
             measure.width(zone, footerSize, regular) + 6 +
             measure.width("00:00:00", footerSize + 1, Typeface.MONOSPACE)
         while (footerWidth() > contentWidth && footerSize > 7f) footerSize -= 0.5f
 
         fun footerHeight(): Float {
-            val dataWidth = contentWidth - measure.width(zone, footerSize, regular) - 6 -
+            val rightWidth = measure.width(zone, footerSize, regular) + 6 +
                 measure.width("00:00:00", footerSize + 1, Typeface.MONOSPACE)
+            val leftHeight = if (showCountdown && countdown != null) {
+                measure.height("00:00:00", COUNTDOWN_SIZE, monoBold, oneLine = true)
+            } else {
+                measure.height(dataTime, footerSize, regular, availableWidthDp = contentWidth - rightWidth)
+            }
             return maxOf(
-                measure.height(dataTime, footerSize, regular, availableWidthDp = dataWidth),
+                leftHeight,
                 measure.height(zone, footerSize, regular),
                 measure.height("00:00:00", footerSize + 1, Typeface.MONOSPACE),
             )
@@ -255,6 +312,8 @@ private object WidgetRenderer {
 
         fun baseHeight(): Float = primaryHeight() + 6 + footerHeight()
 
+        // The countdown is the first detail dropped: a small card keeps its time, room and course.
+        if (baseHeight() > budget) showCountdown = false
         // Trim the secondary text first; the room badge keeps its size as long as possible.
         while (baseHeight() > budget && timeSize > 12f) timeSize -= 1f
         if (baseHeight() > budget) {
@@ -350,6 +409,8 @@ private object WidgetRenderer {
         views.text(R.id.widget_hint, hint, smallSize)
         views.text(R.id.widget_data_time, dataTime, footerSize)
         views.text(R.id.widget_zone, zone, footerSize)
+        views.text(R.id.widget_countdown_label, countdown?.label.orEmpty(), COUNTDOWN_LABEL_SIZE)
+        views.setTextViewTextSize(R.id.widget_countdown_clock, TypedValue.COMPLEX_UNIT_SP, COUNTDOWN_SIZE)
         views.setTextViewTextSize(R.id.widget_clock, TypedValue.COMPLEX_UNIT_SP, footerSize + 1)
         views.setString(R.id.widget_clock, "setTimeZone", settings.zoneId)
         views.visible(R.id.widget_room_badge, hasBadge)
@@ -357,6 +418,20 @@ private object WidgetRenderer {
         views.visible(R.id.widget_course, showCourse)
         views.visible(R.id.widget_metadata, showMetadata)
         views.visible(R.id.widget_hint, hint.isNotEmpty())
+        views.visible(R.id.widget_data_time, !showCountdown)
+        views.visible(R.id.widget_countdown, showCountdown)
+        // Chronometer base is on the elapsedRealtime timebase and the launcher drives the tick, so
+        // no per-minute alarms are needed; the next widget repaint simply rebases it.
+        if (showCountdown && countdown != null) {
+            views.setChronometerCountDown(R.id.widget_countdown_clock, true)
+            views.setChronometer(
+                R.id.widget_countdown_clock,
+                SystemClock.elapsedRealtime() + countdown.remainingMillis,
+                null,
+                true,
+            )
+            views.setContentDescription(R.id.widget_countdown, countdownDescription(countdown))
+        }
         // RemoteViews cannot diff children, so the list is dropped and rebuilt on every update.
         views.removeAllViews(R.id.widget_rows)
         views.visible(R.id.widget_rows, shownRows.isNotEmpty())
@@ -404,6 +479,19 @@ private object WidgetRenderer {
 
     private fun timeRange(occurrence: Occurrence) =
         "${occurrence.start.format(timeFormat)}–${occurrence.end.format(timeFormat)}"
+
+    /** The ticking view is unreadable to TalkBack, so spell the remaining time out once. */
+    private fun countdownDescription(countdown: WidgetCountdown): String {
+        val minutes = (countdown.remainingMillis / 60_000).coerceAtLeast(1)
+        val hours = minutes / 60
+        val rest = minutes % 60
+        val duration = when {
+            hours > 0 && rest > 0 -> "$hours jam $rest menit"
+            hours > 0 -> "$hours jam"
+            else -> "$minutes menit"
+        }
+        return if (countdown.active) "Sisa $duration" else "Mulai dalam $duration"
+    }
 
     private fun zoneLabel(settings: SettingsEntity, state: ScheduleSnapshot): String = when (settings.zoneId) {
         "Asia/Jakarta", "Asia/Pontianak" -> "WIB"
