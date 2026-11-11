@@ -152,6 +152,15 @@
 - Baris model di chat memakai nama pendek (`nvidia/nemotron-3.5-lightning:free` →
   `nemotron-3.5-lightning`), satu baris dengan ellipsis. Balon gagal (merah muda) punya tombol
   "Salin pesan" dan "Coba lagi" (`AgentChatViewModel.retry()` mengirim ulang pesan user terakhir).
+- Jawaban asisten dirender sebagai Markdown, bukan teks polos: `MessageBubble` memakai
+  `com.mikepenz.markdown.m3.Markdown` + `rememberMarkdownState(content, retainState = true)`
+  (dependency `com.mikepenz:multiplatform-markdown-renderer-m3:0.46.0`, GFM termasuk tabel).
+  Pesan user tetap `Text` polos. `retainState` menjaga render lama tetap tampil saat streaming
+  supaya tidak berkedip ke state loading tiap potongan baru.
+- Composer satu pil: `Surface` membulat penuh (`surfaceContainerHigh`) berisi `BasicTextField`
+  + `FilledIconButton` hijau di ujung kanan (abu-abu saat `!canSend`); lingkaran yang sama
+  berubah jadi tombol Stop saat `busy`. Tinggi pil 56–148dp, kolom teks maks 5 baris,
+  tombol Enter keyboard tetap mengirim.
 
 ## Alat bantu
 - `preview/widget-preview.html`: replika widget di browser untuk cek tampilan tanpa emulator

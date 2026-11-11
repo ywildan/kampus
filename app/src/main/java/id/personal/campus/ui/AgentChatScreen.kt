@@ -19,6 +19,8 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
@@ -30,13 +32,13 @@ import androidx.compose.material.icons.outlined.Undo
 import androidx.compose.material.icons.outlined.WarningAmber
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.FilledIconButton
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
+import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
@@ -46,6 +48,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.font.FontWeight
@@ -53,6 +56,9 @@ import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import com.mikepenz.markdown.m3.Markdown
+import com.mikepenz.markdown.m3.markdownColor
+import com.mikepenz.markdown.model.rememberMarkdownState
 import id.personal.campus.agent.AgentSkill
 import id.personal.campus.agent.AgentSkills
 import id.personal.campus.agent.AgentWriteKind
@@ -197,10 +203,25 @@ private fun MessageBubble(message: AgentChatMessage, onRetry: () -> Unit) {
             modifier = Modifier.fillMaxWidth(0.92f),
         ) {
             Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                Text(
-                    text = if (message.text.isEmpty() && message.streaming) "…" else message.text,
-                    color = ink,
-                )
+                if (fromUser) {
+                    Text(
+                        text = if (message.text.isEmpty() && message.streaming) "…" else message.text,
+                        color = ink,
+                    )
+                } else {
+                    // Jawaban model dirender sebagai Markdown (bold, list, tabel jadwal, kode):
+                    // sebelumnya teks polos sehingga `**...**` dan `| ... |` tampil mentah.
+                    // retainState = true supaya saat streaming tiap potongan baru tidak
+                    // menampilkan state loading (berkedip) — render lama dipertahankan dulu.
+                    val markdownState = rememberMarkdownState(
+                        content = if (message.text.isEmpty() && message.streaming) "…" else message.text,
+                        retainState = true,
+                    )
+                    Markdown(
+                        markdownState,
+                        colors = markdownColor(text = ink),
+                    )
+                }
 
                 message.trace?.let { trace ->
                     Text(trace, color = if (fromUser) Color.White else MutedInk, style = MaterialTheme.typography.bodySmall)
@@ -377,6 +398,12 @@ private fun ModelRow(state: AgentChatState, onSmartToggle: (Boolean) -> Unit) {
     }
 }
 
+/**
+ * Kolom ketik + tombol kirim dalam satu pil: wadah membulat penuh berisi kolom teks,
+ * tombol kirim bulat berisi warna hijau di ujung kanan (abu-abu saat tidak bisa dikirim),
+ * dan lingkaran yang sama berubah jadi tombol Stop saat jawaban sedang mengalir.
+ * Sebelumnya OutlinedTextField kotak bergaris + IconButton polos di luar kotak.
+ */
 @Composable
 private fun Composer(
     state: AgentChatState,
@@ -386,24 +413,53 @@ private fun Composer(
 ) {
     Row(
         modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 8.dp),
-        verticalAlignment = Alignment.Bottom,
+        verticalAlignment = Alignment.CenterVertically,
     ) {
-        OutlinedTextField(
-            value = state.input,
-            onValueChange = onInput,
-            modifier = Modifier.weight(1f).heightIn(min = 56.dp, max = 140.dp),
-            enabled = !state.awaitingDecision,
-            placeholder = { Text("Tanya jadwal, tugas, atau catatan…") },
-            maxLines = 5,
-            keyboardOptions = KeyboardOptions(imeAction = ImeAction.Send),
-            keyboardActions = KeyboardActions(onSend = { onSend() }),
-        )
-        Spacer(Modifier.width(8.dp))
-        if (state.busy) {
-            IconButton(onClick = onStop) { Icon(Icons.Outlined.Stop, contentDescription = "Berhenti") }
-        } else {
-            IconButton(onClick = onSend, enabled = state.canSend) {
-                Icon(Icons.Outlined.Send, contentDescription = "Kirim")
+        Surface(
+            color = MaterialTheme.colorScheme.surfaceContainerHigh,
+            shape = RoundedCornerShape(28.dp),
+            modifier = Modifier.weight(1f).heightIn(min = 56.dp, max = 148.dp),
+        ) {
+            Row(
+                modifier = Modifier.padding(start = 16.dp, end = 8.dp, top = 8.dp, bottom = 8.dp),
+                verticalAlignment = Alignment.Bottom,
+            ) {
+                BasicTextField(
+                    value = state.input,
+                    onValueChange = onInput,
+                    modifier = Modifier.weight(1f).heightIn(min = 40.dp, max = 132.dp),
+                    enabled = !state.awaitingDecision,
+                    textStyle = MaterialTheme.typography.bodyLarge.copy(color = Ink),
+                    cursorBrush = SolidColor(CampusGreen),
+                    maxLines = 5,
+                    keyboardOptions = KeyboardOptions(imeAction = ImeAction.Send),
+                    keyboardActions = KeyboardActions(onSend = { onSend() }),
+                    decorationBox = { innerTextField ->
+                        Box(contentAlignment = Alignment.CenterStart) {
+                            if (state.input.isEmpty()) {
+                                Text("Tanya jadwal, tugas, atau catatan…", color = MutedInk)
+                            }
+                            innerTextField()
+                        }
+                    },
+                )
+                Spacer(Modifier.width(8.dp))
+                FilledIconButton(
+                    onClick = if (state.busy) onStop else onSend,
+                    enabled = if (state.busy) true else state.canSend,
+                    modifier = Modifier.size(40.dp),
+                    colors = IconButtonDefaults.filledIconButtonColors(
+                        containerColor = CampusGreen,
+                        contentColor = Color.White,
+                        disabledContainerColor = MaterialTheme.colorScheme.surfaceVariant,
+                        disabledContentColor = MutedInk,
+                    ),
+                ) {
+                    Icon(
+                        if (state.busy) Icons.Outlined.Stop else Icons.Outlined.Send,
+                        contentDescription = if (state.busy) "Berhenti" else "Kirim",
+                    )
+                }
             }
         }
     }
