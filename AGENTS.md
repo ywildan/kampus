@@ -131,6 +131,28 @@
   lalu hapus stub itu setelah selesai — jangan pernah taruh di dalam `app/src`.
 - Ini hanya berlaku untuk paket `agent/`; berkas Compose/Android tetap hanya bisa diverifikasi CI.
 
+## Navigasi, Pengaturan & chat Asisten
+- Urutan tab bawah: Hari Ini (0), Jadwal (1), **Asisten (2, tengah)**, Tugas (3), Pengaturan (4).
+  Semua lompatan (`onSettings`, `onTasks`, `onOpenSettings`, navigasi `settings`) memakai nomor ini.
+- `SettingsScreen` memakai sub-menu: daftar 5 baris (Semester & zona waktu, Pengingat kuliah,
+  Akses dari Android, Asisten AI, Tentang & batas) → tiap baris membuka satu bagian + tombol
+  kembali. Draf semester/pengingat tetap di level layar supaya pindah bagian tidak membuang
+  perubahan belum disimpan; tombol Simpan/Batal ada di bagian Semester dan Pengingat.
+- Penyedia custom: `AgentConfig.customProviders` (id + label + baseUrl, JSON di
+  `AgentConfigStore` kunci `penyedia_custom`). Di Setelan → Asisten AI, URL valid yang belum
+  dikenal bisa disimpan dengan nama ("Simpan sebagai penyedia") lalu dipilih dari daftar
+  preset; penyedia custom bisa dihapus. Tombol "Simpan setelan Asisten AI" wajib membawa
+  `customProviders` dari config tersimpan, kalau tidak penyedia custom ikut terhapus.
+- Chat Asisten: `OpenAiModel.stream` memakai `channelFlow`, **bukan** `flow` — transport
+  memanggil `onChunk` dari `Dispatchers.IO` sehingga `emit` biasa melanggar invarian Flow
+  (dulu muncul sebagai "Flow exception transparency is violated" + `IllegalStateException`).
+  Pesan exception mentah tidak pernah ditampilkan ke user (`AgentChatViewModel.send` catch-all
+  tanpa detail; `AgentChatState.Failed` hanya menggabung pesan + detail bila detailnya
+  memang pesan server yang sudah disensor).
+- Baris model di chat memakai nama pendek (`nvidia/nemotron-3.5-lightning:free` →
+  `nemotron-3.5-lightning`), satu baris dengan ellipsis. Balon gagal (merah muda) punya tombol
+  "Salin pesan" dan "Coba lagi" (`AgentChatViewModel.retry()` mengirim ulang pesan user terakhir).
+
 ## Alat bantu
 - `preview/widget-preview.html`: replika widget di browser untuk cek tampilan tanpa emulator
   (bukan bagian APK). Ukuran di dalamnya ilustratif, bukan hasil pengukuran perangkat.

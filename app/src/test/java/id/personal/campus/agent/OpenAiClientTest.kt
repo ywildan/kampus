@@ -1,8 +1,10 @@
 package id.personal.campus.agent
 
 import java.net.UnknownHostException
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.toList
+import kotlinx.coroutines.withContext
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -127,6 +129,30 @@ class OpenAiClientTest {
         val first = OpenAiModel(transport).stream(request()).first()
 
         assertEquals(AgentEvent.Token("Satu"), first)
+    }
+
+    /**
+     * Regresi untuk error di HP: "Flow exception transparency is violated".
+     * Transport nyata memanggil `onChunk` dari `Dispatchers.IO`, sementara flow dikumpulkan
+     * di Main — dengan `flow` biasa, `emit` dari dispatcher lain melempar
+     * `IllegalStateException` ("Flow invariant is violated"). `channelFlow` harus
+     * menerimanya tanpa error.
+     */
+    @Test fun streamsWhenTransportEmitsFromAnotherDispatcher() = runTest {
+        val transport = object : ChatTransport {
+            override suspend fun stream(
+                request: ChatHttpRequest,
+                onChunk: suspend (String) -> Unit,
+            ): ChatHttpResponse = withContext(Dispatchers.IO) {
+                onChunk("data: {\"choices\":[{\"delta\":{\"content\":\"Besok\"}}]}\n\n")
+                onChunk("data: [DONE]\n\n")
+                ChatHttpResponse(200)
+            }
+        }
+        val events = OpenAiModel(transport).stream(request(tools = emptyList())).toList()
+
+        assertEquals("Besok", events.filterIsInstance<AgentEvent.Token>().joinToString("") { it.text })
+        assertTrue(events.none { it is AgentEvent.Failure })
     }
 
     @Test fun toStringNeverExposesTheKey() {

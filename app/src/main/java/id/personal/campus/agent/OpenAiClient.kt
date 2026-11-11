@@ -10,7 +10,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.currentCoroutineContext
 import kotlinx.coroutines.ensureActive
 import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.flow
+import kotlinx.coroutines.flow.channelFlow
 import kotlinx.coroutines.withContext
 
 /** Permintaan mentah ke endpoint chat. `toString()` sengaja tidak memuat kunci API. */
@@ -130,19 +130,26 @@ class HttpUrlChatTransport(
  *
  * Kunci API tidak pernah masuk pesan error: badan error selalu lewat [redact]. Pembatalan user
  * menutup koneksi lewat `finally { disconnect() }` di [HttpUrlChatTransport].
+ *
+ * Sengaja [channelFlow], bukan `flow`: transport memanggil `onChunk` dari
+ * `Dispatchers.IO` (di dalam `withContext`), sementara pengumpulnya berjalan di Main.
+ * `emit` biasa akan melempar `IllegalStateException` ("Flow invariant is violated")
+ * karena konteks emisinya berbeda — persis error yang dulu muncul sebagai
+ * "Flow exception transparency is violated" di layar chat. `send` di `channelFlow`
+ * aman dipanggil dari dispatcher mana pun.
  */
 class OpenAiModel(
     private val transport: ChatTransport = HttpUrlChatTransport(),
 ) : AgentModel {
 
-    override fun stream(request: AgentRequest): Flow<AgentEvent> = flow {
+    override fun stream(request: AgentRequest): Flow<AgentEvent> = channelFlow {
         val url = request.config.chatCompletionsUrl
         if (url == null) {
-            emit(AgentEvent.Failure(invalidUrlFailure(request.config.baseUrl)))
-            return@flow
+            send(AgentEvent.Failure(invalidUrlFailure(request.config.baseUrl)))
+            return@channelFlow
         }
         if (request.model.isBlank()) {
-            emit(
+            send(
                 AgentEvent.Failure(
                     AgentFailure(
                         AgentFailureKind.BadRequest,
@@ -150,18 +157,18 @@ class OpenAiModel(
                     ),
                 ),
             )
-            return@flow
+            return@channelFlow
         }
 
         val parser = ChatStreamParser()
         val hasTools = request.tools.isNotEmpty()
 
-        when (val first = attempt(url, request, parser, request.messages, withTools = hasTools) { emit(it) }) {
+        when (val first = attempt(url, request, parser, request.messages, withTools = hasTools) { send(it) }) {
             AttemptResult.Streamed -> Unit
             is AttemptResult.Failed -> {
                 if (!hasTools || first.code !in TOOLS_REJECTED_CODES) {
-                    emit(AgentEvent.Failure(first.failure))
-                    return@flow
+                    send(AgentEvent.Failure(first.failure))
+                    return@channelFlow
                 }
                 // Percobaan kedua: tanpa `tools`, dengan instruksi blok JSON.
                 // Server menolak pada tahap status HTTP, jadi belum ada token yang terkirim ke UI.
@@ -170,21 +177,21 @@ class OpenAiModel(
                     role = AgentRole.System,
                     content = PromptToolProtocol.Instruction,
                 )
-                when (val retry = attempt(url, request, parser, messages, withTools = false) { emit(it) }) {
+                when (val retry = attempt(url, request, parser, messages, withTools = false) { send(it) }) {
                     AttemptResult.Streamed -> Unit
                     is AttemptResult.Failed -> {
-                        emit(AgentEvent.Failure(retry.failure))
-                        return@flow
+                        send(AgentEvent.Failure(retry.failure))
+                        return@channelFlow
                     }
                 }
                 for (event in parser.finish()) {
-                    emit(if (event is AgentEvent.Done) event.copy(usedPromptFallback = true) else event)
+                    send(if (event is AgentEvent.Done) event.copy(usedPromptFallback = true) else event)
                 }
-                return@flow
+                return@channelFlow
             }
         }
 
-        parser.finish().forEach { emit(it) }
+        parser.finish().forEach { send(it) }
     }
 
     private suspend fun attempt(

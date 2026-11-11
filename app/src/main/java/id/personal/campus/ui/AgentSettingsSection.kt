@@ -33,7 +33,9 @@ import id.personal.campus.agent.AGENT_MIN_MAX_TOKENS
 import id.personal.campus.agent.AgentConfig
 import id.personal.campus.agent.AgentPresets
 import id.personal.campus.agent.AgentUrlResult
+import id.personal.campus.agent.CustomProvider
 import id.personal.campus.agent.agentPreset
+import id.personal.campus.agent.customProvider
 import id.personal.campus.agent.normalizeBaseUrl
 
 /** Status bagian "Asisten AI" di layar Setelan. Tidak memuat kunci API. */
@@ -77,6 +79,8 @@ fun AgentSettingsSection(
     var modelPintar by rememberSaveable(state.config) { mutableStateOf(state.config.modelPintar) }
     var temperature by rememberSaveable(state.config) { mutableStateOf(state.config.temperature.toString()) }
     var maxTokens by rememberSaveable(state.config) { mutableStateOf(state.config.maxTokens.toString()) }
+    // Nama untuk penyedia custom baru; kosong sampai user mengetiknya.
+    var customName by rememberSaveable(state.config) { mutableStateOf("") }
     // Kunci API sengaja hanya di `remember` (bukan `rememberSaveable`): jangan sampai
     // ikut tersimpan ke Bundle saved-instance-state.
     var draftKey by remember { mutableStateOf("") }
@@ -90,14 +94,27 @@ fun AgentSettingsSection(
         modelPintar.trim() != state.config.modelPintar ||
         draftKey.isNotBlank()
 
+    val providerOptions = AgentPresets.map { it.id to it.label } +
+        state.config.customProviders.map { "custom:${it.id}" to "${it.label} (custom)" }
     ChoiceField(
-        "Preset penyedia", presetId, AgentPresets.map { it.id to it.label }, enabled = !locked,
+        "Preset penyedia", presetId, providerOptions, enabled = !locked,
     ) { id ->
         presetId = id
         agentPreset(id)?.let { baseUrl = it.baseUrl }
+        state.config.customProvider(id)?.let { baseUrl = it.baseUrl }
     }
     agentPreset(presetId)?.let { preset ->
         Text(preset.keterangan, style = MaterialTheme.typography.bodySmall, color = MutedInk)
+    }
+    state.config.customProvider(presetId)?.let { custom ->
+        Text("Penyedia custom: ${custom.baseUrl}", style = MaterialTheme.typography.bodySmall, color = MutedInk)
+        TextButton(enabled = !locked, onClick = {
+            onSave(
+                state.config.copy(customProviders = state.config.customProviders.filterNot { it.id == custom.id }),
+                null, false,
+            )
+            presetId = ""
+        }) { Text("Hapus penyedia ini") }
     }
 
     OutlinedTextField(
@@ -120,6 +137,36 @@ fun AgentSettingsSection(
             "dan LM Studio di jaringan lokal. Aplikasi tidak menambahkan /v1 sendiri.",
         style = MaterialTheme.typography.bodySmall, color = MutedInk,
     )
+    // URL yang belum dikenal bisa disimpan sebagai penyedia custom supaya bisa dipilih lagi.
+    val normalizedUrl = (urlCheck as? AgentUrlResult.Valid)?.baseUrl
+    val urlAlreadyKnown = normalizedUrl != null &&
+        (AgentPresets.any { it.baseUrl == normalizedUrl } ||
+            state.config.customProviders.any { it.baseUrl == normalizedUrl })
+    if (normalizedUrl != null && !urlAlreadyKnown) {
+        OutlinedTextField(
+            value = customName, onValueChange = { customName = it },
+            modifier = Modifier.fillMaxWidth(), enabled = !locked, singleLine = true,
+            label = { Text("Nama penyedia custom") },
+            placeholder = { Text("mis. Server kampus") },
+        )
+        OutlinedButton(
+            onClick = {
+                val provider = CustomProvider(
+                    id = "c${java.util.UUID.randomUUID().toString().take(8)}",
+                    label = customName.trim(),
+                    baseUrl = normalizedUrl,
+                )
+                onSave(
+                    state.config.copy(customProviders = state.config.customProviders + provider),
+                    null, false,
+                )
+                presetId = "custom:${provider.id}"
+                customName = ""
+            },
+            enabled = !locked && customName.isNotBlank(),
+            modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp),
+        ) { Text("Simpan sebagai penyedia") }
+    }
 
     OutlinedTextField(
         value = draftKey, onValueChange = { draftKey = it },
@@ -189,6 +236,9 @@ fun AgentSettingsSection(
                     modelPintar = modelPintar,
                     temperature = temperature.replace(',', '.').toDoubleOrNull() ?: state.config.temperature,
                     maxTokens = maxTokens.toIntOrNull() ?: state.config.maxTokens,
+                    // Penyedia custom harus ikut tersimpan; kalau tidak, sekali simpan
+                    // setelan Asisten AI akan menghapus semua penyedia custom.
+                    customProviders = state.config.customProviders,
                 ),
                 draftKey.takeIf { it.isNotBlank() },
                 false,

@@ -87,7 +87,7 @@ fun CampusApp(model: CampusViewModel, chatModel: AgentChatViewModel) {
         noteEditorId = null
         detailId = null
         if (navigation == "settings") {
-            tab = 3
+            tab = 4
         } else {
             val id = navigation?.removePrefix("course:")?.toLongOrNull()
             tab = 1
@@ -102,8 +102,9 @@ fun CampusApp(model: CampusViewModel, chatModel: AgentChatViewModel) {
         contentWindowInsets = WindowInsets.safeDrawing,
         snackbarHost = { if (!modalOpen) SnackbarHost(snackbar) },
         bottomBar = {
-            val labels = listOf("Hari Ini", "Jadwal", "Tugas", "Pengaturan", "Asisten")
-            val icons = listOf(Icons.Outlined.Today, Icons.Outlined.CalendarMonth, Icons.Outlined.Checklist, Icons.Outlined.Settings, Icons.Outlined.SmartToy)
+            // Urutan tab: Asisten di tengah (indeks 2 dari 5).
+            val labels = listOf("Hari Ini", "Jadwal", "Asisten", "Tugas", "Pengaturan")
+            val icons = listOf(Icons.Outlined.Today, Icons.Outlined.CalendarMonth, Icons.Outlined.SmartToy, Icons.Outlined.Checklist, Icons.Outlined.Settings)
             Surface(color = Paper, tonalElevation = 0.dp, shadowElevation = 0.dp) {
                 Column(Modifier.navigationBarsPadding().windowInsetsPadding(WindowInsets.safeDrawing.only(WindowInsetsSides.Horizontal))) {
                     HorizontalDivider(color = Rule)
@@ -151,25 +152,15 @@ fun CampusApp(model: CampusViewModel, chatModel: AgentChatViewModel) {
                     when (tab) {
                         0 -> HomeScreen(
                             data, checkNotNull(state.schedule), state.saving,
-                            onSettings = { tab = 3 }, onCourse = { detailId = it },
-                            onTasks = { tab = 2 }, onTask = { taskEditorId = it },
+                            onSettings = { tab = 4 }, onCourse = { detailId = it },
+                            onTasks = { tab = 3 }, onTask = { taskEditorId = it },
                             onTaskCompleted = { model.saveTask(it) },
                             onAddNote = { noteEditorId = -1 }, onNote = { noteEditorId = it },
                         )
                         1 -> ScheduleScreen(data.courses, data.settings.zoneId, state.saving,
                             onAdd = { courseEditorId = -1 }, onOpen = { detailId = it },
                             onToggle = { model.saveCourse(it) })
-                        2 -> TasksScreen(data, checkNotNull(state.schedule).now.toLocalDate(), state.saving,
-                            onAdd = { taskEditorId = -1 }, onEdit = { taskEditorId = it },
-                            onToggle = { model.saveTask(it) })
-                        3 -> SettingsScreen(data.settings, state.access, state.saving,
-                            today = checkNotNull(state.schedule).now.toLocalDate(),
-                            onSave = { settings, done -> model.saveSettings(settings, done) },
-                            onPermissionResult = { model.onForeground() }, onNotice = model::notify,
-                            agent = agentState,
-                            onSaveAgent = { config, newKey, clear -> model.saveAgent(config, newKey, clear) },
-                            onCheckAgent = { fetchModels -> model.checkAgent(fetchModels) })
-                        4 -> AgentChatScreen(
+                        2 -> AgentChatScreen(
                             state = chatModel.state.collectAsStateWithLifecycle().value,
                             onInput = chatModel::onInput,
                             onSkill = chatModel::chooseSkill,
@@ -180,9 +171,20 @@ fun CampusApp(model: CampusViewModel, chatModel: AgentChatViewModel) {
                             onDeny = chatModel::deny,
                             onUndo = chatModel::undoLastWrite,
                             onConsumeNotice = chatModel::consumeNotice,
-                            onOpenSettings = { tab = 3 },
+                            onOpenSettings = { tab = 4 },
                             onRefreshSetup = chatModel::refreshSetup,
+                            onRetry = chatModel::retry,
                         )
+                        3 -> TasksScreen(data, checkNotNull(state.schedule).now.toLocalDate(), state.saving,
+                            onAdd = { taskEditorId = -1 }, onEdit = { taskEditorId = it },
+                            onToggle = { model.saveTask(it) })
+                        4 -> SettingsScreen(data.settings, state.access, state.saving,
+                            today = checkNotNull(state.schedule).now.toLocalDate(),
+                            onSave = { settings, done -> model.saveSettings(settings, done) },
+                            onPermissionResult = { model.onForeground() }, onNotice = model::notify,
+                            agent = agentState,
+                            onSaveAgent = { config, newKey, clear -> model.saveAgent(config, newKey, clear) },
+                            onCheckAgent = { fetchModels -> model.checkAgent(fetchModels) })
                     }
                 }
             }

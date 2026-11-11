@@ -23,6 +23,7 @@ import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.ContentCopy
+import androidx.compose.material.icons.outlined.Refresh
 import androidx.compose.material.icons.outlined.Send
 import androidx.compose.material.icons.outlined.Stop
 import androidx.compose.material.icons.outlined.Undo
@@ -50,6 +51,7 @@ import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import id.personal.campus.agent.AgentSkill
 import id.personal.campus.agent.AgentSkills
@@ -88,6 +90,7 @@ fun AgentChatScreen(
     onConsumeNotice: () -> Unit,
     onOpenSettings: () -> Unit,
     onRefreshSetup: () -> Unit,
+    onRetry: () -> Unit,
 ) {
     val listState = rememberLazyListState()
     val lastText = state.messages.lastOrNull()?.text
@@ -112,7 +115,7 @@ fun AgentChatScreen(
                 }
             }
 
-            items(state.messages, key = { it.id }) { message -> MessageBubble(message) }
+            items(state.messages, key = { it.id }) { message -> MessageBubble(message, onRetry) }
 
             if (state.plan.isNotEmpty()) item(key = "plan") { PlanPanel(state.plan, state.busy) }
 
@@ -173,7 +176,7 @@ private fun SetupCard(setup: AgentSetup, onOpenSettings: () -> Unit, onRetry: ()
 }
 
 @Composable
-private fun MessageBubble(message: AgentChatMessage) {
+private fun MessageBubble(message: AgentChatMessage, onRetry: () -> Unit) {
     val fromUser = message.role == AgentChatRole.USER
     val clipboard = LocalClipboardManager.current
     val background = when {
@@ -208,17 +211,23 @@ private fun MessageBubble(message: AgentChatMessage) {
                 }
 
                 if (message.failureDetail != null) {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Text("Salin pesan", color = MutedInk, style = MaterialTheme.typography.bodySmall)
-                        IconButton(
-                            onClick = {
-                                clipboard.setText(
-                                    AnnotatedString(
-                                        listOfNotNull(message.text, message.failureDetail).joinToString("\n"),
-                                    ),
-                                )
-                            },
-                        ) { Icon(Icons.Outlined.ContentCopy, contentDescription = "Salin pesan") }
+                    Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                        TextButton(onClick = {
+                            clipboard.setText(
+                                AnnotatedString(
+                                    listOfNotNull(message.text, message.failureDetail).joinToString("\n"),
+                                ),
+                            )
+                        }) {
+                            Icon(Icons.Outlined.ContentCopy, contentDescription = null, modifier = Modifier.size(16.dp))
+                            Spacer(Modifier.width(4.dp))
+                            Text("Salin pesan", style = MaterialTheme.typography.bodySmall)
+                        }
+                        TextButton(onClick = onRetry) {
+                            Icon(Icons.Outlined.Refresh, contentDescription = null, modifier = Modifier.size(16.dp))
+                            Spacer(Modifier.width(4.dp))
+                            Text("Coba lagi", style = MaterialTheme.typography.bodySmall)
+                        }
                     }
                 }
             }
@@ -330,16 +339,31 @@ private fun SkillPicker(skill: AgentSkill, enabled: Boolean, onSkill: (AgentSkil
     }
 }
 
+/** "nvidia/nemotron-3.5-lightning:free" → "nemotron-3.5-lightning": nama pendek untuk baris model. */
+private fun shortModelName(value: String): String =
+    value.substringAfterLast('/').substringBefore(':').ifBlank { value }
+
 @Composable
 private fun ModelRow(state: AgentChatState, onSmartToggle: (Boolean) -> Unit) {
     val setup = state.setup
     if (setup.fastModel.isBlank() && setup.smartModel.isBlank()) return
 
+    val fast = shortModelName(setup.fastModel)
+    val smart = shortModelName(setup.smartModel)
+    val modelText = when {
+        fast.isBlank() -> "Pintar: $smart"
+        smart.isBlank() -> "Cepat: $fast"
+        fast == smart -> "Model: $fast"
+        else -> "Cepat: $fast · Pintar: $smart"
+    }
+
     Column(Modifier.padding(horizontal = 16.dp), verticalArrangement = Arrangement.spacedBy(2.dp)) {
         Text(
-            text = "Cepat: ${setup.fastModel.ifBlank { "—" }} · Pintar: ${setup.smartModel.ifBlank { "—" }}",
+            text = modelText,
             color = MutedInk,
             style = MaterialTheme.typography.bodySmall,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
         )
         Row(verticalAlignment = Alignment.CenterVertically) {
             Text("Selalu pakai model pintar", color = MutedInk, style = MaterialTheme.typography.bodySmall)

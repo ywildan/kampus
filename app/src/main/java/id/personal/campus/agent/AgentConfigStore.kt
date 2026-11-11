@@ -18,6 +18,7 @@ class AgentConfigStore(context: Context) {
         modelPintar = prefs.getString(KEY_MODEL_SMART, "").orEmpty(),
         temperature = prefs.getString(KEY_TEMPERATURE, null)?.toDoubleOrNull() ?: AGENT_DEFAULT_TEMPERATURE,
         maxTokens = prefs.getInt(KEY_MAX_TOKENS, AGENT_DEFAULT_MAX_TOKENS),
+        customProviders = decodeCustomProviders(prefs.getString(KEY_CUSTOM_PROVIDERS, "").orEmpty()),
     ).sanitized()
 
     fun save(config: AgentConfig) {
@@ -28,6 +29,7 @@ class AgentConfigStore(context: Context) {
             .putString(KEY_MODEL_SMART, safe.modelPintar)
             .putString(KEY_TEMPERATURE, safe.temperature.toString())
             .putInt(KEY_MAX_TOKENS, safe.maxTokens)
+            .putString(KEY_CUSTOM_PROVIDERS, encodeCustomProviders(safe.customProviders))
             .apply()
     }
 
@@ -38,5 +40,6 @@ class AgentConfigStore(context: Context) {
         const val KEY_MODEL_SMART = "model_pintar"
         const val KEY_TEMPERATURE = "temperature"
         const val KEY_MAX_TOKENS = "max_tokens"
+        const val KEY_CUSTOM_PROVIDERS = "penyedia_custom"
     }
 }

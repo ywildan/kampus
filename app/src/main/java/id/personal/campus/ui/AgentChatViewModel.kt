@@ -151,16 +151,27 @@ class AgentChatViewModel(application: Application) : AndroidViewModel(applicatio
                 session.run(request).collect { event -> handle(event) }
             } catch (cancelled: CancellationException) {
                 throw cancelled
-            } catch (unexpected: Throwable) {
-                // Jaring terakhir: pesan apa pun ke user tetap lewat redact dan tanpa stacktrace.
+            } catch (_: Throwable) {
+                // Jaring terakhir: hanya pesan ramah yang sampai ke user. Pesan exception
+                // mentah (nama kelas, konteks coroutine) tidak pernah ditampilkan — dulu
+                // `unexpected.message` bocor ke baris notice sebagai teks "Flow exception
+                // transparency is violated..." yang tidak bisa ditindaklanjuti user.
                 reduce(
                     AgentChatEvent.Failed(
                         "Terjadi kesalahan tak terduga saat menghubungi model. Coba lagi.",
-                        unexpected.message?.take(200),
                     ),
                 )
             }
         }
+    }
+
+    /** Tombol "Coba lagi" pada balon gagal: kirim ulang pesan user terakhir. */
+    fun retry() {
+        if (job?.isActive == true) return
+        val lastUser = history.lastOrNull { it.role == AgentRole.User }?.content?.trim().orEmpty()
+        if (lastUser.isEmpty()) return
+        reduce(AgentChatEvent.InputChanged(lastUser))
+        send()
     }
 
     /** Tombol "Berhenti": membatalkan permintaan yang sedang menunggu dan menutup kartu. */

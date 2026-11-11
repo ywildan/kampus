@@ -89,6 +89,30 @@ class AgentConfigTest {
         assertEquals(null, agentPreset("tidak-ada"))
     }
 
+    @Test fun customProvidersRoundTripThroughJson() {
+        val providers = listOf(
+            CustomProvider("c1", "Server kampus", "https://ai.kampus.id/v1"),
+            CustomProvider("c2", "Lokal", "http://10.0.2.2:11434/v1"),
+        )
+        val decoded = decodeCustomProviders(encodeCustomProviders(providers))
+        assertEquals(providers, decoded)
+        assertEquals(emptyList<CustomProvider>(), decodeCustomProviders(""))
+        assertEquals(emptyList<CustomProvider>(), decodeCustomProviders("bukan-json"))
+        assertEquals(providers[0], AgentConfig(customProviders = providers).customProvider("custom:c1"))
+        assertEquals(null, AgentConfig(customProviders = providers).customProvider("openrouter"))
+    }
+
+    @Test fun sanitizedKeepsCustomProvidersAndDropsBlankOnes() {
+        val kept = AgentConfig(
+            customProviders = listOf(
+                CustomProvider("c1", " Server kampus ", "https://ai.kampus.id/v1 "),
+                CustomProvider("c2", "", "https://x.id/v1"),
+                CustomProvider("c3", "Tanpa URL", ""),
+            ),
+        ).sanitized().customProviders
+        assertEquals(listOf(CustomProvider("c1", "Server kampus", "https://ai.kampus.id/v1")), kept)
+    }
+
     private fun url(raw: String) = (normalizeBaseUrl(raw) as AgentUrlResult.Valid).baseUrl
 
     private fun invalid(raw: String) = normalizeBaseUrl(raw) is AgentUrlResult.Invalid

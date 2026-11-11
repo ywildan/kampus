@@ -10,12 +10,21 @@ import java.net.URISyntaxException
  * Kunci API sengaja TIDAK ada di sini: kunci hanya hidup di [AgentSecrets]
  * (terenkripsi) dan di memori sesaat ketika user mengetiknya.
  */
+/** Penyedia OpenAI-compatible buatan user: nama tampilan + base URL, tersimpan di perangkat. */
+data class CustomProvider(
+    val id: String,
+    val label: String,
+    val baseUrl: String,
+)
+
 data class AgentConfig(
     val baseUrl: String = "",
     val modelCepat: String = "",
     val modelPintar: String = "",
     val temperature: Double = AGENT_DEFAULT_TEMPERATURE,
     val maxTokens: Int = AGENT_DEFAULT_MAX_TOKENS,
+    /** Penyedia custom yang disimpan user; kosong bila belum ada. */
+    val customProviders: List<CustomProvider> = emptyList(),
 ) {
     /** Model untuk pemilihan/pemanggilan tool (Tahap 5 memakai ini). */
     val effectiveFast: String get() = modelCepat.ifBlank { modelPintar }
@@ -46,7 +55,37 @@ fun AgentConfig.sanitized(): AgentConfig = copy(
     temperature = if (temperature.isFinite()) temperature.coerceIn(0.0, 2.0) else AGENT_DEFAULT_TEMPERATURE,
     maxTokens = if (maxTokens <= 0) AGENT_DEFAULT_MAX_TOKENS
     else maxTokens.coerceIn(AGENT_MIN_MAX_TOKENS, AGENT_MAX_MAX_TOKENS),
+    customProviders = customProviders
+        .map { it.copy(label = it.label.trim(), baseUrl = it.baseUrl.trim()) }
+        .filter { it.id.isNotBlank() && it.label.isNotBlank() && it.baseUrl.isNotBlank() }
+        .distinctBy { it.id },
 )
+
+/** Simpan daftar penyedia custom sebagai JSON (satu string di SharedPreferences). */
+fun encodeCustomProviders(providers: List<CustomProvider>): String = AgentJson.write(
+    arrOf(
+        *providers.map {
+            objOf(
+                "id" to strOf(it.id),
+                "label" to strOf(it.label),
+                "baseUrl" to strOf(it.baseUrl),
+            )
+        }.toTypedArray(),
+    ),
+)
+
+/** Baca kembali hasil [encodeCustomProviders]; rusak/kosong = daftar kosong. */
+fun decodeCustomProviders(raw: String): List<CustomProvider> {
+    if (raw.isBlank()) return emptyList()
+    val parsed = AgentJson.parse(raw) as? AgentJsonValue.Arr ?: return emptyList()
+    return parsed.items.mapNotNull { item ->
+        val id = item.stringOrNull("id").orEmpty()
+        val label = item.stringOrNull("label").orEmpty()
+        val baseUrl = item.stringOrNull("baseUrl").orEmpty()
+        if (id.isBlank() || label.isBlank() || baseUrl.isBlank()) null
+        else CustomProvider(id, label, baseUrl)
+    }.distinctBy { it.id }
+}
 
 sealed interface AgentUrlResult {
     data class Valid(val baseUrl: String) : AgentUrlResult
@@ -176,3 +215,10 @@ val AgentPresets: List<AgentPreset> = listOf(
 )
 
 fun agentPreset(id: String): AgentPreset? = AgentPresets.find { it.id == id }
+
+/** Cari penyedia custom dari config berdasarkan id pilihannya (`custom:<id>`). */
+fun AgentConfig.customProvider(choiceId: String): CustomProvider? {
+    if (!choiceId.startsWith("custom:")) return null
+    val id = choiceId.removePrefix("custom:")
+    return customProviders.find { it.id == id }
+}
