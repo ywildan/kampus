@@ -81,7 +81,7 @@ class AgentChatViewModel(application: Application) : AndroidViewModel(applicatio
 
     fun chooseSkill(skill: AgentSkill) = reduce(AgentChatEvent.SkillChosen(skill))
 
-    fun toggleSmartModel(enabled: Boolean) = reduce(AgentChatEvent.SmartModelToggled(enabled))
+    fun chooseModelMode(mode: AgentChatModelMode) = reduce(AgentChatEvent.ModelModeChosen(mode))
 
     fun consumeNotice() = reduce(AgentChatEvent.NoticeShown)
 
@@ -124,10 +124,11 @@ class AgentChatViewModel(application: Application) : AndroidViewModel(applicatio
         }
 
         val skill = mutableState.value.skill
-        val useSmart = mutableState.value.useSmartModelForAll
+        val mode = mutableState.value.modelMode
         // Nilai dibaca sekali di awal sesi supaya perubahan Setelan di tengah jalan tidak
         // membuat percakapan berpindah model tanpa disadari.
         val config = configStore.load()
+        val selection = mode.resolveModels(config)
 
         job = viewModelScope.launch {
             reduce(AgentChatEvent.Sent(text))
@@ -140,8 +141,8 @@ class AgentChatViewModel(application: Application) : AndroidViewModel(applicatio
                 config = config,
                 apiKey = apiKey,
                 messages = history.toList(),
-                toolModel = if (useSmart) config.effectiveSmart else config.effectiveFast,
-                answerModel = config.effectiveSmart,
+                toolModel = selection.toolModel,
+                answerModel = selection.answerModel,
                 skill = skill,
                 zoneId = zoneId,
                 confirmWrite = { proposal -> awaitDecision(proposal) },

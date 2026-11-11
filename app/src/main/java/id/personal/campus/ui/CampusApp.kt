@@ -80,6 +80,11 @@ fun CampusApp(model: CampusViewModel, chatModel: AgentChatViewModel) {
             model.notices.collect { snackbar.showSnackbar(it, actionLabel = "Tutup", duration = SnackbarDuration.Long) }
         }
     }
+    // Kembali dari Setelan: muat ulang model/kesiapan Asisten supaya nama di sheet tidak basi.
+    LaunchedEffect(tab) {
+        if (tab == 2) chatModel.refreshSetup()
+    }
+
     LaunchedEffect(navigation, data != null) {
         if (data == null || navigation == null) return@LaunchedEffect
         courseEditorId = null
@@ -164,7 +169,7 @@ fun CampusApp(model: CampusViewModel, chatModel: AgentChatViewModel) {
                             state = chatModel.state.collectAsStateWithLifecycle().value,
                             onInput = chatModel::onInput,
                             onSkill = chatModel::chooseSkill,
-                            onSmartToggle = chatModel::toggleSmartModel,
+                            onModelMode = chatModel::chooseModelMode,
                             onSend = chatModel::send,
                             onStop = chatModel::stop,
                             onApprove = chatModel::approve,
@@ -184,7 +189,7 @@ fun CampusApp(model: CampusViewModel, chatModel: AgentChatViewModel) {
                             onPermissionResult = { model.onForeground() }, onNotice = model::notify,
                             agent = agentState,
                             onSaveAgent = { config, newKey, clear -> model.saveAgent(config, newKey, clear) },
-                            onCheckAgent = { fetchModels -> model.checkAgent(fetchModels) })
+                            onCheckAgent = { config, newKey -> model.checkAgent(config, newKey) })
                     }
                 }
             }

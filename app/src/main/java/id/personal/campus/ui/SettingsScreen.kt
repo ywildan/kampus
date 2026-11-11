@@ -61,7 +61,7 @@ fun SettingsScreen(
     onNotice: (String) -> Unit,
     agent: AgentUiState,
     onSaveAgent: (config: AgentConfig, newApiKey: String?, clearKey: Boolean) -> Unit,
-    onCheckAgent: (fetchModels: Boolean) -> Unit,
+    onCheckAgent: (config: AgentConfig, newApiKey: String?) -> Unit,
 ) {
     val context = LocalContext.current
     // Drafts are independent of the shared clock and survive tab switches/configuration changes.

@@ -1,5 +1,6 @@
 package id.personal.campus.ui
 
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
@@ -18,6 +19,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
@@ -25,6 +27,7 @@ import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.ContentCopy
+import androidx.compose.material.icons.outlined.ExpandMore
 import androidx.compose.material.icons.outlined.Refresh
 import androidx.compose.material.icons.outlined.Send
 import androidx.compose.material.icons.outlined.Stop
@@ -32,25 +35,36 @@ import androidx.compose.material.icons.outlined.Undo
 import androidx.compose.material.icons.outlined.WarningAmber
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilledIconButton
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.RadioButton
+import androidx.compose.material3.RadioButtonDefaults
 import androidx.compose.material3.Surface
-import androidx.compose.material3.Switch
+import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.platform.LocalClipboardManager
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.AnnotatedString
+import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.style.TextAlign
@@ -59,6 +73,7 @@ import androidx.compose.ui.unit.dp
 import com.mikepenz.markdown.m3.Markdown
 import com.mikepenz.markdown.m3.markdownColor
 import com.mikepenz.markdown.model.rememberMarkdownState
+import kotlinx.coroutines.launch
 import id.personal.campus.agent.AgentSkill
 import id.personal.campus.agent.AgentSkills
 import id.personal.campus.agent.AgentWriteKind
@@ -87,7 +102,7 @@ fun AgentChatScreen(
     state: AgentChatState,
     onInput: (String) -> Unit,
     onSkill: (AgentSkill) -> Unit,
-    onSmartToggle: (Boolean) -> Unit,
+    onModelMode: (AgentChatModelMode) -> Unit,
     onSend: () -> Unit,
     onStop: () -> Unit,
     onApprove: () -> Unit,
@@ -146,7 +161,7 @@ fun AgentChatScreen(
 
         HorizontalDivider(color = Rule)
         SkillPicker(state.skill, enabled = !state.busy && !state.awaitingDecision, onSkill = onSkill)
-        ModelRow(state, onSmartToggle = onSmartToggle)
+        ModelModeRow(state, onModelMode)
         Composer(state, onInput = onInput, onSend = onSend, onStop = onStop)
         state.notice?.let { Notice(message = it, onDismiss = onConsumeNotice) }
     }
@@ -367,36 +382,171 @@ private fun SkillPicker(skill: AgentSkill, enabled: Boolean, onSkill: (AgentSkil
 private fun shortModelName(value: String): String =
     value.substringAfterLast('/').substringBefore(':').ifBlank { value }
 
+/**
+ * Tombol mode model + sheet Hemat/Pintar/Cepat.
+ *
+ * Menggantikan teks dua model + switch "Selalu pakai model pintar" yang tidak menjelaskan bahwa
+ * jawaban memang selalu ditulis model pintar. Pilihan hanya hidup di sesi chat ini.
+ */
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun ModelRow(state: AgentChatState, onSmartToggle: (Boolean) -> Unit) {
+private fun ModelModeRow(state: AgentChatState, onModelMode: (AgentChatModelMode) -> Unit) {
     val setup = state.setup
     if (setup.fastModel.isBlank() && setup.smartModel.isBlank()) return
 
-    val fast = shortModelName(setup.fastModel)
-    val smart = shortModelName(setup.smartModel)
-    val modelText = when {
-        fast.isBlank() -> "Pintar: $smart"
-        smart.isBlank() -> "Cepat: $fast"
-        fast == smart -> "Model: $fast"
-        else -> "Cepat: $fast · Pintar: $smart"
+    var sheetOpen by rememberSaveable { mutableStateOf(false) }
+    val mode = state.modelMode
+    val hint = when (mode) {
+        AgentChatModelMode.HEMAT -> "Cepat baca data → pintar menulis jawaban"
+        AgentChatModelMode.PINTAR -> "Semua langkah memakai model pintar"
+        AgentChatModelMode.CEPAT -> "Semua langkah memakai model cepat"
     }
 
-    Column(Modifier.padding(horizontal = 16.dp), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+    Row(
+        modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(10.dp),
+    ) {
+        Surface(
+            onClick = { sheetOpen = true },
+            enabled = !state.busy,
+            shape = CircleShape,
+            color = if (state.busy) MaterialTheme.colorScheme.surfaceVariant else MaterialTheme.colorScheme.primaryContainer,
+            contentColor = if (state.busy) MutedInk else CampusGreen,
+            border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
+            tonalElevation = 0.dp,
+            shadowElevation = 0.dp,
+        ) {
+            Row(
+                modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(4.dp),
+            ) {
+                Text("Model · ${mode.label}", style = MaterialTheme.typography.labelLarge)
+                Icon(
+                    Icons.Outlined.ExpandMore,
+                    contentDescription = null,
+                    modifier = Modifier.size(16.dp),
+                )
+            }
+        }
         Text(
-            text = modelText,
+            text = hint,
             color = MutedInk,
             style = MaterialTheme.typography.bodySmall,
-            maxLines = 1,
+            maxLines = 2,
             overflow = TextOverflow.Ellipsis,
         )
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            Text("Selalu pakai model pintar", color = MutedInk, style = MaterialTheme.typography.bodySmall)
-            Spacer(Modifier.width(8.dp))
-            Switch(
-                checked = state.useSmartModelForAll,
-                onCheckedChange = onSmartToggle,
-                enabled = !state.busy,
+    }
+
+    if (sheetOpen) {
+        ModelModeSheet(
+            selected = mode,
+            setup = setup,
+            onSelect = { onModelMode(it); sheetOpen = false },
+            onDismiss = { sheetOpen = false },
+        )
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun ModelModeSheet(
+    selected: AgentChatModelMode,
+    setup: AgentSetup,
+    onSelect: (AgentChatModelMode) -> Unit,
+    onDismiss: () -> Unit,
+) {
+    val sheetState = rememberModalBottomSheetState()
+    val scope = rememberCoroutineScope()
+    ModalBottomSheet(
+        onDismissRequest = onDismiss,
+        sheetState = sheetState,
+        containerColor = Paper,
+        contentColor = Ink,
+        tonalElevation = 0.dp,
+    ) {
+        Column(
+            modifier = Modifier.fillMaxWidth().padding(start = 20.dp, end = 20.dp, bottom = 24.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+            Text("Mode model", style = MaterialTheme.typography.titleLarge)
+            Text("Berlaku untuk pesan berikutnya.", color = MutedInk, style = MaterialTheme.typography.bodySmall)
+            AgentChatModelMode.entries.forEach { mode ->
+                ModelModeOption(mode, mode == selected, setup) { chosen ->
+                    // Animasi tutup dulu supaya pilihan tidak "menghilang" mendadak.
+                    scope.launch { sheetState.hide() }.invokeOnCompletion {
+                        if (!sheetState.isVisible) {
+                            onSelect(chosen)
+                            onDismiss()
+                        }
+                    }
+                }
+            }
+            Text(
+                text = if (setup.fastModel == setup.smartModel) {
+                    "Model cepat dan pintar sama, jadi ketiga mode berperilaku sama."
+                } else {
+                    "Pilihan tidak mengubah setelan tersimpan."
+                },
+                color = MutedInk,
+                style = MaterialTheme.typography.bodySmall,
             )
+        }
+    }
+}
+
+@Composable
+private fun ModelModeOption(
+    mode: AgentChatModelMode,
+    selected: Boolean,
+    setup: AgentSetup,
+    onSelect: (AgentChatModelMode) -> Unit,
+) {
+    val models = when (mode) {
+        AgentChatModelMode.HEMAT -> "${shortModelName(setup.fastModel)} → ${shortModelName(setup.smartModel)}"
+        AgentChatModelMode.PINTAR -> shortModelName(setup.smartModel)
+        AgentChatModelMode.CEPAT -> shortModelName(setup.fastModel)
+    }
+    val description = when (mode) {
+        AgentChatModelMode.HEMAT -> "Cepat untuk membaca data, pintar untuk menulis jawaban."
+        AgentChatModelMode.PINTAR -> "Semua langkah memakai model pintar."
+        AgentChatModelMode.CEPAT -> "Semua langkah memakai model cepat. Paling murah, jawaban lebih ringkas."
+    }
+
+    Surface(
+        modifier = Modifier
+            .fillMaxWidth()
+            .selectable(selected = selected, role = Role.RadioButton) { onSelect(mode) },
+        shape = MaterialTheme.shapes.medium,
+        color = if (selected) MaterialTheme.colorScheme.primaryContainer else Paper,
+        contentColor = Ink,
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
+        tonalElevation = 0.dp,
+        shadowElevation = 0.dp,
+    ) {
+        Row(
+            modifier = Modifier.padding(12.dp),
+            horizontalArrangement = Arrangement.spacedBy(12.dp),
+            verticalAlignment = Alignment.Top,
+        ) {
+            RadioButton(
+                selected = selected,
+                onClick = null,
+                colors = RadioButtonDefaults.colors(selectedColor = CampusGreen),
+            )
+            Column(
+                modifier = Modifier.weight(1f),
+                verticalArrangement = Arrangement.spacedBy(2.dp),
+            ) {
+                Text(mode.label, style = MaterialTheme.typography.titleMedium)
+                Text(description, color = MutedInk, style = MaterialTheme.typography.bodySmall)
+                Text(
+                    text = models,
+                    color = CampusGreen,
+                    style = MaterialTheme.typography.bodySmall.copy(fontFamily = FontFamily.Monospace),
+                )
+            }
         }
     }
 }

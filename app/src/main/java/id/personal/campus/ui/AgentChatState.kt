@@ -1,5 +1,6 @@
 package id.personal.campus.ui
 
+import id.personal.campus.agent.AgentConfig
 import id.personal.campus.agent.AgentSkill
 import id.personal.campus.agent.AgentSkills
 import id.personal.campus.agent.AgentWriteProposal
@@ -14,6 +15,27 @@ import id.personal.campus.agent.AgentWriteProposal
 enum class AgentChatRole { USER, ASSISTANT }
 
 enum class AgentPlanStatus { RUNNING, DONE, CANCELLED }
+
+/**
+ * Model yang dipakai untuk satu pesan.
+ *
+ * Hemat mempertahankan pembagian lama (cepat untuk alat, pintar untuk jawaban); Pintar/Cepat
+ * memakai satu model untuk semua langkah. Pilihan ini hanya hidup di sesi chat, bukan setelan.
+ */
+enum class AgentChatModelMode(val label: String) {
+    HEMAT("Hemat"),
+    PINTAR("Pintar"),
+    CEPAT("Cepat"),
+}
+
+/** Pasangan model untuk [id.personal.campus.agent.AgentRunRequest]. */
+data class AgentModelSelection(val toolModel: String, val answerModel: String)
+
+fun AgentChatModelMode.resolveModels(config: AgentConfig): AgentModelSelection = when (this) {
+    AgentChatModelMode.HEMAT -> AgentModelSelection(config.effectiveFast, config.effectiveSmart)
+    AgentChatModelMode.PINTAR -> AgentModelSelection(config.effectiveSmart, config.effectiveSmart)
+    AgentChatModelMode.CEPAT -> AgentModelSelection(config.effectiveFast, config.effectiveFast)
+}
 
 /** Satu langkah di panel "rencana aksi" (tool apa yang sedang/baru dijalankan). */
 data class AgentPlanStep(val label: String, val status: AgentPlanStatus)
@@ -51,8 +73,8 @@ data class AgentChatState(
     val skill: AgentSkill = AgentSkills.default,
     /** Status kesiapan konfigurasi; diisi ViewModel dari Setelan. */
     val setup: AgentSetup = AgentSetup(),
-    /** Bila true, semua langkah memakai model pintar (bukan cepat → pintar). */
-    val useSmartModelForAll: Boolean = false,
+    /** Cara memilih model untuk pesan berikutnya; default mengikuti perilaku lama. */
+    val modelMode: AgentChatModelMode = AgentChatModelMode.HEMAT,
     val busy: Boolean = false,
     /** Terisi hanya saat kartu konfirmasi tampil; user wajib memilih Setuju/Batal. */
     val proposal: AgentWriteProposal? = null,
@@ -73,7 +95,7 @@ sealed interface AgentChatEvent {
     data class InputChanged(val text: String) : AgentChatEvent
     data class SkillChosen(val skill: AgentSkill) : AgentChatEvent
     data class SetupChanged(val setup: AgentSetup) : AgentChatEvent
-    data class SmartModelToggled(val enabled: Boolean) : AgentChatEvent
+    data class ModelModeChosen(val mode: AgentChatModelMode) : AgentChatEvent
 
     /** Pesan singkat tanpa mengubah percakapan (mis. "belum siap", "tidak ada yang bisa dibatalkan"). */
     data class Notice(val text: String) : AgentChatEvent
@@ -128,7 +150,7 @@ object AgentChatReducer {
 
         is AgentChatEvent.SetupChanged -> state.copy(setup = event.setup)
 
-        is AgentChatEvent.SmartModelToggled -> state.copy(useSmartModelForAll = event.enabled)
+        is AgentChatEvent.ModelModeChosen -> state.copy(modelMode = event.mode)
 
         is AgentChatEvent.Notice -> state.copy(notice = event.text)
 

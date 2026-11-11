@@ -1,0 +1,376 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Pratinjau UI Asisten AI</title>
+<style>
+  :root {
+    --paper: #F6F4EF;
+    --ink: #14161A;
+    --muted: #5E625C;
+    --rule: #D9D4C7;
+    --green: #2F6B4F;
+    --green-soft: #E3EBE0;
+    --surface: #EEEBE2;
+    --error: #9B302C;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; padding: 28px 20px 56px;
+    background: #E8E4DA; color: var(--ink);
+    font-family: Roboto, "Helvetica Neue", Arial, sans-serif;
+  }
+  h1 { font-family: Georgia, "Times New Roman", serif; font-size: 24px; margin: 0 0 6px; }
+  .lead { margin: 0 0 24px; max-width: 860px; font-size: 13px; line-height: 1.55; color: #4A4D48; }
+  .grid { display: flex; flex-wrap: wrap; gap: 32px; align-items: flex-start; }
+  figure { margin: 0; }
+  figcaption { margin-top: 10px; width: 380px; font-size: 12px; line-height: 1.5; color: #4A4D48; }
+  .phone {
+    width: 380px; min-height: 640px; position: relative;
+    display: flex; flex-direction: column;
+    background: var(--paper); border: 1px solid var(--rule);
+    border-radius: 24px; overflow: hidden;
+  }
+  .phone-pad { padding: 16px; display: flex; flex-direction: column; gap: 12px; flex: 1; }
+  .serif { font-family: Georgia, "Times New Roman", serif; }
+  .mono { font-family: "Roboto Mono", Consolas, monospace; }
+  .muted { color: var(--muted); }
+  .small { font-size: 12px; line-height: 1.45; }
+  .tiny { font-size: 11px; line-height: 1.4; }
+  .card {
+    background: var(--paper); border: 1px solid var(--rule);
+    border-radius: 12px; padding: 16px;
+  }
+  .group-label {
+    font-size: 10.5px; font-weight: 600; letter-spacing: 0.09em;
+    color: var(--green); margin: 0 0 10px;
+  }
+  .field-label { font-size: 11px; color: var(--muted); margin: 12px 0 6px; }
+  .btn {
+    display: flex; align-items: center; justify-content: space-between; gap: 8px;
+    width: 100%; min-height: 44px; padding: 0 14px;
+    border: 1px solid var(--muted); border-radius: 999px;
+    background: transparent; color: var(--ink); font-size: 13px;
+  }
+  .btn .chev { color: var(--muted); font-size: 12px; }
+  .btn-green {
+    background: var(--green); border-color: var(--green); color: #fff;
+    justify-content: center; font-weight: 500;
+  }
+  .btn-quiet {
+    border: 1px solid var(--rule); background: transparent;
+    border-radius: 999px; padding: 6px 12px; font-size: 12px; color: var(--green);
+  }
+  .chip {
+    border: 1px solid var(--rule); border-radius: 999px;
+    padding: 6px 12px; font-size: 12px; color: var(--ink); background: transparent;
+    white-space: nowrap;
+  }
+  .chip.on { background: var(--green); border-color: var(--green); color: #fff; }
+  .row { display: flex; align-items: center; gap: 8px; }
+  .spacer { flex: 1 1 auto; }
+  .divider { height: 1px; background: var(--rule); margin: 14px 0; }
+
+  /* ---- Chat ---- */
+  .chat-head { padding: 18px 16px 0; }
+  .chat-head h2 { margin: 0; font-size: 22px; }
+  .bubble { max-width: 88%; padding: 10px 12px; border-radius: 12px; font-size: 13px; line-height: 1.5; }
+  .bubble.user { align-self: flex-end; background: var(--green); color: #fff; }
+  .bubble.bot { align-self: flex-start; background: #fff; border: 1px solid var(--rule); }
+  .chat-body { display: flex; flex-direction: column; gap: 10px; flex: 1; }
+  .chat-controls { border-top: 1px solid var(--rule); padding-top: 10px; display: flex; flex-direction: column; gap: 8px; }
+  .skill-row { display: flex; gap: 8px; overflow: hidden; padding: 0 4px; }
+  .model-row { display: flex; align-items: center; gap: 10px; padding: 0 4px; }
+  .model-btn {
+    display: flex; align-items: center; gap: 6px;
+    flex: 0 0 auto; white-space: nowrap;
+    background: var(--green-soft); color: var(--green);
+    border: 1px solid #C9DCCB; border-radius: 999px;
+    padding: 7px 12px; font-size: 12px; font-weight: 500;
+  }
+  .model-btn .chev { font-size: 10px; }
+  .composer {
+    display: flex; align-items: center; gap: 8px;
+    background: var(--surface); border-radius: 999px;
+    padding: 8px 8px 8px 16px; min-height: 52px;
+  }
+  .composer > span:first-child { color: var(--muted); font-size: 13px; flex: 1; }
+  .send {
+    flex: 0 0 38px; width: 38px; height: 38px; border-radius: 50%; background: var(--green);
+    color: #fff; display: grid; place-items: center; font-size: 16px;
+  }
+
+  /* ---- Bottom sheet ---- */
+  .scrim { position: absolute; inset: 0; background: rgba(20, 22, 26, 0.28); }
+  .sheet {
+    position: absolute; left: 0; right: 0; bottom: 0;
+    background: var(--paper); border-radius: 20px 20px 0 0;
+    padding: 10px 16px 20px; box-shadow: 0 -8px 30px rgba(20, 22, 26, 0.12);
+  }
+  .grabber { width: 34px; height: 4px; border-radius: 2px; background: var(--rule); margin: 2px auto 14px; }
+  .sheet h3 { margin: 0 0 4px; font-size: 20px; }
+  .option {
+    display: flex; align-items: flex-start; gap: 12px;
+    padding: 12px; border-radius: 12px; margin-top: 8px;
+    border: 1px solid var(--rule);
+  }
+  .option.on { background: var(--green-soft); border-color: #C9DCCB; }
+  .radio {
+    width: 18px; height: 18px; border-radius: 50%;
+    border: 1.5px solid var(--muted); margin-top: 2px; flex: 0 0 auto;
+  }
+  .option.on .radio { border-color: var(--green); background: radial-gradient(circle, var(--green) 0 5px, transparent 5.5px); }
+  .option-title { font-size: 14px; font-weight: 600; }
+  .option-sub { font-size: 12px; color: var(--muted); margin-top: 2px; line-height: 1.45; }
+  .option-model { font-size: 11px; color: var(--green); margin-top: 4px; }
+  .sheet-note { margin-top: 14px; font-size: 11px; color: var(--muted); }
+
+  /* ---- Settings ---- */
+  .back { font-size: 13px; color: var(--green); padding: 16px 16px 0; }
+  .settings-head { padding: 8px 16px 0; }
+  .settings-head h2 { margin: 0 0 6px; font-size: 26px; }
+  .summary-row {
+    display: flex; align-items: center; justify-content: space-between;
+    gap: 12px; padding: 10px 0 0;
+  }
+  .key-box {
+    display: flex; align-items: center; gap: 10px;
+    border: 1px solid var(--rule); border-radius: 10px;
+    padding: 10px 12px; font-size: 13px;
+  }
+  .status-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--green); }
+  .savebar {
+    margin-top: auto; border-top: 1px solid var(--rule);
+    padding: 12px 16px 16px; display: flex; align-items: center; gap: 10px;
+  }
+  .savebar .note { font-size: 11px; color: var(--green); flex: 1; line-height: 1.35; }
+  .savebar .btn { width: auto; padding: 0 18px; }
+  .savebar .btn-green { min-width: 96px; }
+
+  /* ---- Model picker sheet ---- */
+  .search {
+    display: flex; align-items: center; gap: 8px;
+    background: var(--surface); border-radius: 999px;
+    padding: 10px 14px; font-size: 13px; color: var(--muted); margin: 12px 0 6px;
+  }
+  .model-option {
+    display: flex; align-items: center; gap: 10px;
+    padding: 11px 8px; border-bottom: 1px solid var(--rule); font-size: 13px;
+  }
+  .model-option:last-child { border-bottom: 0; }
+  .model-option .check { color: var(--green); font-weight: 700; }
+
+  .notes {
+    margin-top: 36px; max-width: 880px;
+    background: var(--paper); border: 1px solid var(--rule);
+    border-radius: 12px; padding: 18px 20px;
+  }
+  .notes h2 { font-family: Georgia, serif; font-size: 18px; margin: 0 0 8px; }
+  .notes ul { margin: 0; padding-left: 20px; font-size: 13px; line-height: 1.7; color: #3C3F3A; }
+</style>
+</head>
+<body>
+  <h1>Pratinjau UI Asisten AI</h1>
+  <p class="lead">
+    Spesifikasi visual (bukan hasil build) untuk dua perubahan: tombol mode model di layar chat dengan
+    sheet Hemat/Pintar/Cepat, dan setelan Asisten AI yang dipecah jadi tiga grup dengan satu bilah Simpan.
+    Token warna, radius, dan tipografi mengikuti <code>Theme.kt</code>.
+  </p>
+
+  <div class="grid">
+    <!-- 1. Chat -->
+    <figure>
+      <div class="phone">
+        <div class="chat-head">
+          <h2 class="serif">Asisten</h2>
+          <div class="small muted">Rabu, 11 Nov 2026</div>
+        </div>
+        <div class="phone-pad">
+          <div class="card small">
+            <strong>Asisten AI</strong><br>
+            <span class="muted">Asisten hanya membaca data di aplikasi ini; setiap perubahan harus kamu setujui.</span>
+          </div>
+          <div class="chat-body">
+            <div class="bubble user">Kelas berikutnya jam berapa?</div>
+            <div class="bubble bot">
+              Kelas berikutnya <strong>Pengantar Akuntansi</strong>, 12:30–15:00 di ruang <strong>A.3b.6</strong>.
+            </div>
+          </div>
+          <div class="chat-controls">
+            <div class="skill-row">
+              <span class="chip on">Semua</span>
+              <span class="chip">Jadwal</span>
+              <span class="chip">Tugas</span>
+              <span class="chip">Catatan</span>
+            </div>
+            <div class="model-row">
+              <span class="model-btn">Model · Hemat <span class="chev">▾</span></span>
+              <span class="tiny muted">Cepat baca data → pintar menulis jawaban</span>
+            </div>
+            <div class="composer">
+              <span>Tanya jadwal, tugas, atau catatan…</span>
+              <span class="send">↑</span>
+            </div>
+          </div>
+        </div>
+      </div>
+      <figcaption>
+        Baris model lama (teks dua model + switch "Selalu pakai model pintar") diganti satu tombol.
+        Ketuk → sheet mode. Pilihan berlaku untuk pesan berikutnya dan tidak mengubah setelan tersimpan.
+      </figcaption>
+    </figure>
+
+    <!-- 2. Mode sheet -->
+    <figure>
+      <div class="phone">
+        <div class="scrim"></div>
+        <div class="sheet">
+          <div class="grabber"></div>
+          <h3 class="serif">Mode model</h3>
+          <div class="small muted">Berlaku untuk pesan berikutnya.</div>
+          <div class="option on">
+            <span class="radio"></span>
+            <div>
+              <div class="option-title">Hemat</div>
+              <div class="option-sub">Cepat untuk membaca data, pintar untuk menulis jawaban.</div>
+              <div class="option-model mono">llama-3.1-8b → claude-3.5-sonnet</div>
+            </div>
+          </div>
+          <div class="option">
+            <span class="radio"></span>
+            <div>
+              <div class="option-title">Pintar</div>
+              <div class="option-sub">Semua langkah memakai model pintar.</div>
+              <div class="option-model mono">claude-3.5-sonnet</div>
+            </div>
+          </div>
+          <div class="option">
+            <span class="radio"></span>
+            <div>
+              <div class="option-title">Cepat</div>
+              <div class="option-sub">Semua langkah memakai model cepat. Paling murah, jawaban lebih ringkas.</div>
+              <div class="option-model mono">llama-3.1-8b</div>
+            </div>
+          </div>
+          <div class="sheet-note">
+            Nama model mengikuti setelan. Bila model cepat dan pintar sama, ketiga mode berperilaku sama.
+          </div>
+        </div>
+      </div>
+      <figcaption>
+        Mode Hemat = perilaku sekarang (tool cepat, jawaban pintar). Pintar/Cepat memakai satu model untuk
+        semua langkah. Tidak perlu tombol Simpan.
+      </figcaption>
+    </figure>
+
+    <!-- 3. Settings -->
+    <figure>
+      <div class="phone">
+        <div class="back">‹ Kembali ke Pengaturan</div>
+        <div class="settings-head">
+          <h2 class="serif">Asisten AI</h2>
+          <div class="small muted">
+            Opsional dan membawa kunci sendiri. Tanpa kunci atau internet, jadwal, tugas, catatan,
+            pengingat, dan widget tetap berjalan.
+          </div>
+        </div>
+        <div class="phone-pad">
+          <div class="card">
+            <div class="group-label">PENYEDIA &amp; KUNCI</div>
+            <div class="btn">OpenRouter <span class="chev">▾</span></div>
+            <div class="summary-row">
+              <span class="mono small">https://openrouter.ai/api/v1</span>
+              <span class="btn-quiet">Ubah</span>
+            </div>
+            <div class="field-label">Kunci API</div>
+            <div class="key-box">
+              <span class="mono">••••••••••••</span>
+              <span class="spacer"></span>
+              <span class="muted">Tampilkan</span>
+            </div>
+            <div class="tiny muted" style="margin-top:6px">Tersimpan terenkripsi di perangkat ini.</div>
+            <div class="divider"></div>
+            <div class="row">
+              <span class="status-dot"></span>
+              <span class="small">Koneksi berhasil. 42 model tersedia.</span>
+            </div>
+            <div class="btn" style="justify-content:center; margin-top:8px">Uji koneksi &amp; ambil model</div>
+          </div>
+
+          <div class="card">
+            <div class="group-label">MODEL</div>
+            <div class="field-label" style="margin-top:0">Membaca data (alat)</div>
+            <div class="btn mono small">llama-3.1-8b-instruct <span class="chev">▾</span></div>
+            <div class="tiny muted" style="margin-top:5px">Dipakai mode Hemat dan Cepat.</div>
+            <div class="field-label">Menulis jawaban</div>
+            <div class="btn mono small">claude-3.5-sonnet <span class="chev">▾</span></div>
+            <div class="tiny muted" style="margin-top:5px">Dipakai mode Hemat dan Pintar.</div>
+            <div class="divider"></div>
+            <div class="tiny muted">
+              Mode Hemat memakai keduanya. Mode Pintar/Cepat memakai satu model untuk semua langkah.
+            </div>
+          </div>
+
+          <div class="card">
+            <div class="row">
+              <div>
+                <div class="group-label" style="margin:0">LANJUTAN</div>
+                <div class="small muted" style="margin-top:4px">Temperature 0.3 · batas 1024 token</div>
+              </div>
+              <span class="spacer"></span>
+              <span class="btn-quiet">Buka</span>
+            </div>
+          </div>
+        </div>
+        <div class="savebar">
+          <div class="note">Ada perubahan belum disimpan.</div>
+          <button class="btn">Batal</button>
+          <button class="btn btn-green">Simpan</button>
+        </div>
+      </div>
+      <figcaption>
+        Tiga grup sesuai urutan kerja: koneksi → model → parameter lanjutan. Satu bilah Simpan di bawah,
+        tombol uji memakai isian di layar (bukan setelan tersimpan), dan model tidak lagi diisi dua kali.
+      </figcaption>
+    </figure>
+
+    <!-- 4. Model picker -->
+    <figure>
+      <div class="phone">
+        <div class="scrim"></div>
+        <div class="sheet">
+          <div class="grabber"></div>
+          <h3 class="serif">Pilih model</h3>
+          <div class="small muted">Untuk menulis jawaban · 42 model dari server.</div>
+          <div class="search">Cari model…</div>
+          <div class="model-option"><span class="mono">claude-3.5-sonnet</span><span class="spacer"></span><span class="check">✓</span></div>
+          <div class="model-option"><span class="mono">gpt-4o-mini</span></div>
+          <div class="model-option"><span class="mono">llama-3.1-8b-instruct</span></div>
+          <div class="model-option"><span class="mono">qwen-2.5-72b-instruct</span></div>
+          <div class="model-option"><span class="mono">deepseek-chat</span></div>
+          <div class="sheet-note">
+            Daftar diambil dari <span class="mono">/models</span> saat koneksi berhasil dan bisa dimuat ulang.
+            Nama yang tidak ada di daftar tetap bisa diketik manual.
+          </div>
+        </div>
+      </div>
+      <figcaption>
+        Sheet model dengan pencarian menggantikan dropdown 360dp yang tidak bisa dipakai untuk ratusan model.
+        Pilihan mengubah draf; baru tersimpan lewat bilah Simpan.
+      </figcaption>
+    </figure>
+  </div>
+
+  <section class="notes">
+    <h2>Catatan desain</h2>
+    <ul>
+      <li>Satu sumber kebenaran per nilai: model dipilih lewat sheet, bukan kolom teks + dropdown sekaligus.</li>
+      <li>Status koneksi tinggal di grup Penyedia; "Uji ulang" menguji isian yang terlihat di layar.</li>
+      <li>Penyedia custom dikelola dari sheet penyedia dan ikut tersimpan lewat Simpan, bukan save diam-diam.</li>
+      <li>Bilah Simpan/Batal sama dengan pola bagian Semester dan Pengingat; perubahan temperature/token ikut terdeteksi.</li>
+      <li>Semua nama model dan angka di mockup ini hanya contoh.</li>
+    </ul>
+  </section>
+</body>
+</html>

@@ -273,9 +273,13 @@ class CampusViewModel(application: Application, private val savedState: SavedSta
                     app.agentSecrets.hasKey()
                 }
                 mutableAgent.update {
+                    // Daftar model hanya disimpan bila berasal dari URL yang sama.
+                    val keepModels = it.modelsUrl == normalized.baseUrl
                     it.copy(
                         config = normalized, hasKey = hasKey, busy = false, messageOk = true,
                         message = "Setelan Asisten AI tersimpan.", detail = null,
+                        models = if (keepModels) it.models else emptyList(),
+                        modelsUrl = if (keepModels) it.modelsUrl else null,
                     )
                 }
                 onSaved()
@@ -292,9 +296,12 @@ class CampusViewModel(application: Application, private val savedState: SavedSta
         }
     }
 
-    /** [fetchModels] `true` mengisi daftar model; `false` hanya menguji koneksi. */
-    fun checkAgent(fetchModels: Boolean) {
-        val url = normalizeBaseUrl(mutableAgent.value.config.baseUrl)
+    /**
+     * Uji koneksi + ambil daftar model memakai isian di layar (draf), bukan setelan tersimpan.
+     * [newApiKey] hanya dipakai untuk permintaan ini dan tidak disimpan.
+     */
+    fun checkAgent(config: AgentConfig, newApiKey: String?) {
+        val url = normalizeBaseUrl(config.baseUrl)
         if (url is AgentUrlResult.Invalid) {
             mutableAgent.update { it.copy(message = url.message, messageOk = false, detail = null) }
             return
@@ -305,16 +312,18 @@ class CampusViewModel(application: Application, private val savedState: SavedSta
         if (mutableAgent.value.busy) return
         mutableAgent.update { it.copy(busy = true, message = null, detail = null) }
         viewModelScope.launch {
-            val key = withContext(Dispatchers.IO) { app.agentSecrets.loadKey() }
+            val key = newApiKey?.takeIf { it.isNotBlank() }
+                ?: withContext(Dispatchers.IO) { app.agentSecrets.loadKey() }
             when (val result = ModelCatalog.listModels(validBaseUrl, key)) {
                 is AgentResult.Success -> mutableAgent.update {
                     it.copy(
                         busy = false, messageOk = true, detail = null,
-                        models = if (fetchModels) result.value else it.models,
+                        models = result.value,
+                        modelsUrl = validBaseUrl,
                         message = if (result.value.isEmpty()) {
-                            "Server menjawab (200) tetapi tidak mengirim daftar model. Nama model bisa diisi manual."
+                            "Koneksi berhasil, tetapi server tidak mengirim daftar model. Nama model bisa diisi manual."
                         } else {
-                            "Koneksi berhasil (200). ${result.value.size} model tersedia."
+                            "Koneksi berhasil. ${result.value.size} model tersedia."
                         },
                     )
                 }
