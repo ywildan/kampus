@@ -154,14 +154,18 @@
   "Salin pesan" dan "Coba lagi" (`AgentChatViewModel.retry()` mengirim ulang pesan user terakhir).
 - Jawaban asisten dirender sebagai Markdown, bukan teks polos: `MessageBubble` memakai
   `com.mikepenz.markdown.m3.Markdown` + `rememberMarkdownState(content, retainState = true)`
-  (dependency `com.mikepenz:multiplatform-markdown-renderer-m3:0.39.0`, GFM termasuk tabel).
-  Versi 0.39.0 sengaja: 0.42.0+ butuh `minCompileSdk` 37 dan 0.46.0 menarik Compose 1.12.1
+  (dependency `com.mikepenz:multiplatform-markdown-renderer-m3:0.35.0`, GFM termasuk tabel).
+  Versi 0.35.0 sengaja: 0.42.0+ butuh `minCompileSdk` 37 dan 0.46.0 menarik Compose 1.12.1
   (butuh AGP 9.1.0), sedangkan proyek ini compileSdk 35 + AGP 8.10.1 — CI run 43018473463
-  GAGAL di `:app:checkReleaseAarMetadata` karena 0.46.0. 0.39.0 adalah versi terbaru yang
-  `minCompileSdk`-nya 1 dan tanpa dependency runtime Compose; API yang dipakai
-  (`rememberMarkdownState`, `Markdown(state, colors)`, `markdownColor(text)`) sudah ada di 0.39.0.
-  Pesan user tetap `Text` polos. `retainState` menjaga render lama tetap tampil saat streaming
-  supaya tidak berkedip ke state loading tiap potongan baru.
+  GAGAL di `:app:checkReleaseAarMetadata` karena 0.46.0. Lalu 0.39.0 sempat dipakai tapi
+  crash di HP (`NoSuchMethodError: ComposablesKt.getCurrentCompositeKeyHashCode`, dipanggil
+  dari `MarkdownSuccess`): method runtime Compose itu tidak ada di Compose 1.8.x aplikasi
+  (BOM 2025.04.01). Panggilan itu masuk ke bytecode library sejak 0.37.0 (dicek langsung di
+  AAR: 0.35.0 bersih, 0.37.0+ mengandungnya), jadi 0.35.0 adalah versi terbaru yang aman.
+  0.35.0 belum punya `retainState`, jadi dipakai `immediate = true` (parse sinkron, pesan
+  chat kecil) + `modifier = Modifier.fillMaxWidth()` (bukan bawaan `fillMaxSize`, supaya
+  aman di dalam LazyColumn). API yang dipakai (`rememberMarkdownState`, `Markdown(state,
+  colors)`, `markdownColor(text)`) sudah ada di 0.35.0 — diverifikasi ke source tag v0.35.0.
 - Composer satu pil: `Surface` membulat penuh (`surfaceContainerHigh`) berisi `BasicTextField`
   + `FilledIconButton` hijau di ujung kanan (abu-abu saat `!canSend`); lingkaran yang sama
   berubah jadi tombol Stop saat `busy`. Tinggi pil 56–148dp, kolom teks maks 5 baris,

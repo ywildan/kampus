@@ -211,14 +211,17 @@ private fun MessageBubble(message: AgentChatMessage, onRetry: () -> Unit) {
                 } else {
                     // Jawaban model dirender sebagai Markdown (bold, list, tabel jadwal, kode):
                     // sebelumnya teks polos sehingga `**...**` dan `| ... |` tampil mentah.
-                    // retainState = true supaya saat streaming tiap potongan baru tidak
-                    // menampilkan state loading (berkedip) — render lama dipertahankan dulu.
+                    // immediate = true: parse sinkron (pesan chat kecil) supaya balon langsung
+                    // terukur di tinggi akhirnya dan tidak berkedip lewat state loading saat
+                    // streaming. modifier fillMaxWidth (bukan bawaan fillMaxSize) supaya aman
+                    // di dalam LazyColumn yang tingginya tak terbatas.
                     val markdownState = rememberMarkdownState(
                         content = if (message.text.isEmpty() && message.streaming) "…" else message.text,
-                        retainState = true,
+                        immediate = true,
                     )
                     Markdown(
                         markdownState,
+                        modifier = Modifier.fillMaxWidth(),
                         colors = markdownColor(text = ink),
                     )
                 }
