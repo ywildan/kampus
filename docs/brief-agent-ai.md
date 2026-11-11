@@ -47,8 +47,6 @@ Tahap N selesai/gagal
 - `minSdk 26`, `compileSdk/targetSdk 35`, `lint { abortOnError = true }`.
   **Semua string UI dalam bahasa Indonesia**, istilah mengikuti layar yang sudah ada
   ("Mata kuliah", "Ruangan", "Tugas", "Catatan").
-- `AGENTS.md` berisi catatan proyek; baca dan **tambahkan** catatan baru yang berguna bagi agent
-  berikutnya di akhir pekerjaan (jangan mengubah catatan yang masih benar).
 
 ### Verifikasi (sandbox tanpa JDK/Android SDK)
 
@@ -278,9 +276,6 @@ Jangan mengklaim PDF "sudah dites" hanya karena CI hijau.
   Setelah fitur ini nyata, kalimat itu tidak lagi benar. Ganti dengan pernyataan jujur:
   data aplikasi tidak pernah meninggalkan perangkat **kecuali** saat Anda memakai Asisten AI,
   dan hanya ke URL yang Anda tentukan sendiri.
-- `AGENTS.md`: tambah catatan tahan-lama — key tidak boleh masuk log; `DocumentSpec`/`CsvWriter`
-  wajib bebas `android.*` agar tetap bisa dites di CI; cara menambah format ekspor baru;
-  tool read-only vs tulis; batas iterasi tool.
 - Pastikan **tidak ada** perubahan pada `widget/` dan `reminder/`.
 
 ---

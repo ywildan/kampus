@@ -7,7 +7,7 @@ package id.personal.campus.agent
  * disediakan oleh `android.jar` yang di unit test JVM diganti dengan versi "mockable"
  * (metode tanpa isi). Akibatnya parser SSE dan pemanggilan tool — yang justru logika inti
  * Tahap 2 — tidak bisa diuji di CI, padahal CI adalah satu-satunya tempat kode ini dikompilasi
- * (lihat AGENTS.md). Berkas ini **bebas `android.*` dan bebas dependency baru**, jadi seluruh
+ * (lihat `.github/workflows/android.yml`). Berkas ini **bebas `android.*` dan bebas dependency baru**, jadi seluruh
  * pemetaan data di paket ini bisa diuji lewat `AgentJsonTest`.
  *
  * Batasan yang disengaja: hanya untuk membaca/menulis JSON (tanpa validasi skema), ada batas
