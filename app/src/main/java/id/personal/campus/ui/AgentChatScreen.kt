@@ -124,7 +124,7 @@ fun AgentChatScreen(
         ) {
             if (state.messages.isEmpty()) item(key = "intro") { IntroCard() }
 
-            if (!state.setup.ready) {
+            if (!state.setup.ready && state.modelMode != AgentChatModelMode.OFFLINE) {
                 item(key = "setup") {
                     SetupCard(state.setup, onOpenSettings = onOpenSettings, onRetry = onRefreshSetup)
                 }
@@ -154,7 +154,9 @@ fun AgentChatScreen(
         }
 
         HorizontalDivider(color = Rule)
-        if (state.autoApproveWrites) AutoApprovalBanner()
+        // Banner auto-approval tidak tampil di mode Offline: di sana perubahan
+        // selalu menunggu Setuju, jadi banner itu akan menyesatkan.
+        if (state.autoApproveWrites && state.modelMode != AgentChatModelMode.OFFLINE) AutoApprovalBanner()
         ModelModeRow(state, onModelMode)
         Composer(state, onInput = onInput, onSend = onSend, onStop = onStop)
         state.notice?.let { Notice(message = it, onDismiss = onConsumeNotice) }
@@ -384,16 +386,16 @@ private fun shortModelName(value: String): String =
     value.substringAfterLast('/').substringBefore(':').ifBlank { value }
 
 /**
- * Tombol mode model + sheet Hemat/Pintar/Cepat.
+ * Tombol mode model + sheet Hemat/Pintar/Cepat/Offline.
  *
  * Menggantikan teks dua model + switch "Selalu pakai model pintar" yang tidak menjelaskan bahwa
  * jawaban memang selalu ditulis model pintar. Pilihan hanya hidup di sesi chat ini.
+ * Baris ini selalu tampil: mode Offline bisa dipakai tanpa setelan model sama sekali.
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun ModelModeRow(state: AgentChatState, onModelMode: (AgentChatModelMode) -> Unit) {
     val setup = state.setup
-    if (setup.fastModel.isBlank() && setup.smartModel.isBlank()) return
 
     var sheetOpen by rememberSaveable { mutableStateOf(false) }
     val mode = state.modelMode
@@ -401,6 +403,7 @@ private fun ModelModeRow(state: AgentChatState, onModelMode: (AgentChatModelMode
         AgentChatModelMode.HEMAT -> "Cepat baca data → pintar menulis jawaban"
         AgentChatModelMode.PINTAR -> "Semua langkah memakai model pintar"
         AgentChatModelMode.CEPAT -> "Semua langkah memakai model cepat"
+        AgentChatModelMode.OFFLINE -> "Tanpa internet: dijawab dari data di HP"
     }
 
     Row(
@@ -486,7 +489,7 @@ private fun ModelModeSheet(
             }
             Text(
                 text = if (setup.fastModel == setup.smartModel) {
-                    "Model cepat dan pintar sama, jadi ketiga mode berperilaku sama."
+                    "Model cepat dan pintar sama, jadi ketiga mode online berperilaku sama."
                 } else {
                     "Pilihan tidak mengubah setelan tersimpan."
                 },
@@ -505,14 +508,21 @@ private fun ModelModeOption(
     onSelect: (AgentChatModelMode) -> Unit,
 ) {
     val models = when (mode) {
-        AgentChatModelMode.HEMAT -> "${shortModelName(setup.fastModel)} → ${shortModelName(setup.smartModel)}"
-        AgentChatModelMode.PINTAR -> shortModelName(setup.smartModel)
-        AgentChatModelMode.CEPAT -> shortModelName(setup.fastModel)
+        AgentChatModelMode.HEMAT -> {
+            val fast = shortModelName(setup.fastModel)
+            val smart = shortModelName(setup.smartModel)
+            if (fast.isBlank() && smart.isBlank()) "Belum diatur" else "$fast → $smart"
+        }
+        AgentChatModelMode.PINTAR -> shortModelName(setup.smartModel).ifBlank { "Belum diatur" }
+        AgentChatModelMode.CEPAT -> shortModelName(setup.fastModel).ifBlank { "Belum diatur" }
+        AgentChatModelMode.OFFLINE -> "Lokal · tanpa internet"
     }
     val description = when (mode) {
         AgentChatModelMode.HEMAT -> "Cepat untuk membaca data, pintar untuk menulis jawaban."
         AgentChatModelMode.PINTAR -> "Semua langkah memakai model pintar."
         AgentChatModelMode.CEPAT -> "Semua langkah memakai model cepat. Paling murah, jawaban lebih ringkas."
+        AgentChatModelMode.OFFLINE -> "Jadwal, tugas, ruangan, dan catatan dijawab langsung dari data di HP. " +
+            "Tidak perlu internet atau kunci API; perubahan tetap menunggu persetujuan."
     }
 
     Surface(

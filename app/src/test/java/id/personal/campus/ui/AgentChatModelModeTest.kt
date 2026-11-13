@@ -1,6 +1,7 @@
 package id.personal.campus.ui
 
 import id.personal.campus.agent.AgentConfig
+import id.personal.campus.agent.LocalAgentModel
 import org.junit.Assert.assertEquals
 import org.junit.Test
 
@@ -35,6 +36,12 @@ class AgentChatModelModeTest {
         val selection = AgentChatModelMode.CEPAT.resolveModels(AgentConfig(modelPintar = "smart-model"))
         assertEquals("smart-model", selection.toolModel)
         assertEquals("smart-model", selection.answerModel)
+    }
+
+    @Test fun offlineUsesLocalModelNameForBothSteps() {
+        val selection = AgentChatModelMode.OFFLINE.resolveModels(config)
+        assertEquals(LocalAgentModel.MODEL_NAME, selection.toolModel)
+        assertEquals(LocalAgentModel.MODEL_NAME, selection.answerModel)
     }
 
     @Test fun defaultModeIsHematAndReducerStoresTheChoice() {

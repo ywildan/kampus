@@ -1,5 +1,7 @@
 package id.personal.campus.agent
 
+import java.time.ZoneId
+
 /**
  * Pabrik model untuk layar Asisten AI.
  *
@@ -8,4 +10,7 @@ package id.personal.campus.agent
  */
 object AgentChatModelFactory {
     fun create(): AgentModel = OpenAiModel()
+
+    /** Model offline berbasis aturan; zona dipakai untuk "hari ini"/"besok"/"lusa". */
+    fun createOffline(zoneId: ZoneId): AgentModel = LocalAgentModel(zoneId = zoneId)
 }

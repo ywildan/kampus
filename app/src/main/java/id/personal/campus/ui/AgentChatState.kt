@@ -2,6 +2,7 @@ package id.personal.campus.ui
 
 import id.personal.campus.agent.AgentConfig
 import id.personal.campus.agent.AgentWriteProposal
+import id.personal.campus.agent.LocalAgentModel
 
 /**
  * Status layar Asisten AI sebagai data biasa.
@@ -18,12 +19,15 @@ enum class AgentPlanStatus { RUNNING, DONE, CANCELLED }
  * Model yang dipakai untuk satu pesan.
  *
  * Hemat mempertahankan pembagian lama (cepat untuk alat, pintar untuk jawaban); Pintar/Cepat
- * memakai satu model untuk semua langkah. Pilihan ini hanya hidup di sesi chat, bukan setelan.
+ * memakai satu model untuk semua langkah; Offline tidak memakai model online sama sekali —
+ * jawaban dirangkai [id.personal.campus.agent.LocalAgentModel] dari data lokal.
+ * Pilihan ini hanya hidup di sesi chat, bukan setelan.
  */
 enum class AgentChatModelMode(val label: String) {
     HEMAT("Hemat"),
     PINTAR("Pintar"),
     CEPAT("Cepat"),
+    OFFLINE("Offline"),
 }
 
 /** Pasangan model untuk [id.personal.campus.agent.AgentRunRequest]. */
@@ -33,6 +37,11 @@ fun AgentChatModelMode.resolveModels(config: AgentConfig): AgentModelSelection =
     AgentChatModelMode.HEMAT -> AgentModelSelection(config.effectiveFast, config.effectiveSmart)
     AgentChatModelMode.PINTAR -> AgentModelSelection(config.effectiveSmart, config.effectiveSmart)
     AgentChatModelMode.CEPAT -> AgentModelSelection(config.effectiveFast, config.effectiveFast)
+    // Nama sentinel: model offline mengabaikan nama model dan menjawab dari data lokal.
+    AgentChatModelMode.OFFLINE -> AgentModelSelection(
+        LocalAgentModel.MODEL_NAME,
+        LocalAgentModel.MODEL_NAME,
+    )
 }
 
 /** Perintah lokal yang dijalankan aplikasi, tidak dikirim ke model. */

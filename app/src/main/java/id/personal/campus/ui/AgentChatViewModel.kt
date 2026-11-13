@@ -19,6 +19,7 @@ import id.personal.campus.agent.AgentUrlResult
 import id.personal.campus.agent.normalizeBaseUrl
 import id.personal.campus.data.AgentRepositoryWriteStore
 import id.personal.campus.reminder.ScheduleCoordinator
+import java.time.ZoneId
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
@@ -58,10 +59,11 @@ class AgentChatViewModel(application: Application) : AndroidViewModel(applicatio
         },
     )
 
-    private val session = AgentSession(
-        model = AgentChatModelFactory.create(),
-        registry = AgentToolRegistry(readTools.tools + writeTools.tools),
-    )
+    /** Semua tool (baca + tulis); model dipilih per pesan di [send] (online/offline). */
+    private val registry = AgentToolRegistry(readTools.tools + writeTools.tools)
+
+    /** Mode pesan yang sedang berjalan; dipakai [handle] untuk kartu konfirmasi. */
+    private var activeOffline = false
 
     private val mutableState = MutableStateFlow(AgentChatState())
     val state: StateFlow<AgentChatState> = mutableState.asStateFlow()
@@ -120,13 +122,16 @@ class AgentChatViewModel(application: Application) : AndroidViewModel(applicatio
             return
         }
 
+        val mode = mutableState.value.modelMode
+        // Mode Offline tidak butuh alamat server, model, atau kunci API: semua jawaban
+        // dirangkai dari data lokal, jadi gerbang setelan dilewati.
+        val offline = mode == AgentChatModelMode.OFFLINE
         val setup = mutableState.value.setup
-        if (!setup.ready) {
+        if (!setup.ready && !offline) {
             reduce(AgentChatEvent.Notice(setup.problem ?: "Lengkapi Setelan Asisten AI dulu."))
             return
         }
 
-        val mode = mutableState.value.modelMode
         // Nilai dibaca sekali di awal sesi supaya perubahan Setelan di tengah jalan tidak
         // membuat percakapan berpindah model tanpa disadari.
         val config = configStore.load()
@@ -136,8 +141,16 @@ class AgentChatViewModel(application: Application) : AndroidViewModel(applicatio
             reduce(AgentChatEvent.Sent(text))
             history += AgentMessage(role = AgentRole.User, content = text)
 
-            val apiKey = withContext(Dispatchers.IO) { secrets.loadKey().orEmpty() }
+            val apiKey = if (offline) "" else withContext(Dispatchers.IO) { secrets.loadKey().orEmpty() }
             val zoneId = withContext(Dispatchers.IO) { app.repository.snapshot().settings.zoneId }
+
+            val model = if (offline) {
+                AgentChatModelFactory.createOffline(ZoneId.of(zoneId))
+            } else {
+                AgentChatModelFactory.create()
+            }
+            val session = AgentSession(model = model, registry = registry)
+            activeOffline = offline
 
             val request = AgentRunRequest(
                 config = config,
@@ -148,7 +161,9 @@ class AgentChatViewModel(application: Application) : AndroidViewModel(applicatio
                 // Tanpa skill: registry mengirim semua tool, dan prompt dasar yang mengatur niat aksi.
                 zoneId = zoneId,
                 confirmWrite = { proposal ->
-                    if (mutableState.value.autoApproveWrites) true else awaitDecision(proposal)
+                    // Offline: auto-approval tidak berlaku — perubahan selalu menunggu
+                    // Setuju, supaya salah paham parser tidak langsung mengubah data.
+                    if (!offline && mutableState.value.autoApproveWrites) true else awaitDecision(proposal)
                 },
             )
 
@@ -230,9 +245,12 @@ class AgentChatViewModel(application: Application) : AndroidViewModel(applicatio
                 reduce(AgentChatEvent.ToolFinished(event.name, event.cancelled))
 
             // Kartu juga dipasang di sini supaya tampil tepat saat keputusan diminta.
-            // Saat auto-approval aktif, kartu tidak perlu sempat berkedip.
+            // Saat auto-approval aktif, kartu tidak perlu sempat berkedip — kecuali
+            // mode Offline: kartunya selalu tampil karena auto-approval tidak berlaku.
             is AgentSessionEvent.WriteProposed ->
-                if (!mutableState.value.autoApproveWrites) reduce(AgentChatEvent.Proposed(event.proposal))
+                if (activeOffline || !mutableState.value.autoApproveWrites) {
+                    reduce(AgentChatEvent.Proposed(event.proposal))
+                }
 
             is AgentSessionEvent.WriteApplied -> reduce(AgentChatEvent.Applied(event.summary))
 
