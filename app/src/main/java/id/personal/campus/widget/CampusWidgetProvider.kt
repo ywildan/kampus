@@ -121,7 +121,7 @@ private object WidgetRenderer {
      * supaya lebar/tinggi yang dihitung di sini cocok dengan yang digambar launcher.
      * TypefaceCompat menyimpan cache, jadi memuat ulang per render tidak mahal.
      */
-    private class Faces(context: Context) {
+    private class Faces(private val context: Context) {
         private fun load(id: Int, fallback: Typeface): Typeface =
             ResourcesCompat.getFont(context, id) ?: fallback
 
