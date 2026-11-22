@@ -97,10 +97,10 @@ fun AgentSettingsSection(
     Text(
         "Opsional dan membawa kunci sendiri. Tanpa kunci API maupun tanpa internet, jadwal, tugas, " +
             "catatan, pengingat, dan widget tetap berjalan seperti biasa.",
-        style = MaterialTheme.typography.bodySmall, color = MutedInk,
+        style = MaterialTheme.typography.bodySmall, color = Muted,
     )
     if (!state.loaded) {
-        Text("Memuat setelan Asisten AI...", color = MutedInk)
+        Text("Memuat setelan Asisten AI...", color = Muted)
         return
     }
 
@@ -172,7 +172,7 @@ fun AgentSettingsSection(
             if (url != null) baseUrl = url
         }
         agentPreset(presetId)?.let { preset ->
-            Text(preset.keterangan, style = MaterialTheme.typography.bodySmall, color = MutedInk)
+            Text(preset.keterangan, style = MaterialTheme.typography.bodySmall, color = Muted)
         }
         customProviders.find { "custom:${it.id}" == presetId }?.let { custom ->
             Row(verticalAlignment = Alignment.CenterVertically) {
@@ -180,7 +180,7 @@ fun AgentSettingsSection(
                     "Penyedia custom: ${custom.baseUrl}",
                     modifier = Modifier.weight(1f),
                     style = MaterialTheme.typography.bodySmall,
-                    color = MutedInk,
+                    color = Muted,
                 )
                 TextButton(enabled = !locked, onClick = {
                     providersJson = encodeCustomProviders(customProviders.filterNot { it.id == custom.id })
@@ -202,13 +202,13 @@ fun AgentSettingsSection(
                 is AgentUrlResult.Invalid -> ValidationText(urlCheck.message)
                 is AgentUrlResult.Valid -> Text(
                     "Alamat dipakai: ${urlCheck.baseUrl}/chat/completions",
-                    style = MaterialTheme.typography.bodySmall, color = MutedInk,
+                    style = MaterialTheme.typography.bodySmall, color = Muted,
                 )
             }
             Text(
                 "Protokol yang didukung: OpenAI-compatible (/chat/completions dan /models), termasuk " +
                     "Ollama dan LM Studio di jaringan lokal. Aplikasi tidak menambahkan /v1 sendiri.",
-                style = MaterialTheme.typography.bodySmall, color = MutedInk,
+                style = MaterialTheme.typography.bodySmall, color = Muted,
             )
             // URL yang belum dikenal bisa disimpan sebagai penyedia custom, ikut draf yang sama.
             if (normalizedUrl != null && !urlAlreadyKnown) {
@@ -234,13 +234,13 @@ fun AgentSettingsSection(
                 ) { Text("Tambah ke daftar penyedia") }
                 Text(
                     "Penyedia baru ikut tersimpan lewat tombol Simpan di bawah.",
-                    style = MaterialTheme.typography.bodySmall, color = MutedInk,
+                    style = MaterialTheme.typography.bodySmall, color = Muted,
                 )
             }
         } else {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Column(Modifier.weight(1f)) {
-                    Text("Alamat server", style = MaterialTheme.typography.bodySmall, color = MutedInk)
+                    Text("Alamat server", style = MaterialTheme.typography.bodySmall, color = Muted)
                     Text(
                         baseUrl,
                         style = MaterialTheme.typography.bodyMedium.copy(fontFamily = FontFamily.Monospace),
@@ -277,7 +277,7 @@ fun AgentSettingsSection(
             TextButton(enabled = !locked, onClick = { confirmClear = true }) { Text("Hapus kunci API") }
         }
 
-        HorizontalDivider(color = Rule)
+        HorizontalDivider(color = Line)
         ConnectionStatus(state)
         OutlinedButton(
             onClick = { onCheck(draftConfig(), draftKey.takeIf { it.isNotBlank() }) },
@@ -288,7 +288,7 @@ fun AgentSettingsSection(
             "Menguji alamat dan kunci yang terlihat di atas, lalu mengambil daftar model. " +
                 "Kunci yang baru diketik hanya dipakai untuk uji ini dan belum tersimpan.",
             style = MaterialTheme.typography.bodySmall,
-            color = if (draftDirty) CampusGreen else MutedInk,
+            color = if (draftDirty) Brand600 else Muted,
         )
     }
 
@@ -311,7 +311,7 @@ fun AgentSettingsSection(
                 if (availableModels.isNotEmpty()) append(" ${availableModels.size} model tersedia dari server.")
                 else append(" Uji koneksi di grup Penyedia untuk mengambil daftar model, atau ketik nama manual.")
             },
-            style = MaterialTheme.typography.bodySmall, color = MutedInk,
+            style = MaterialTheme.typography.bodySmall, color = Muted,
         )
     }
 
@@ -321,7 +321,7 @@ fun AgentSettingsSection(
                 "Temperature ${temperature.ifBlank { "—" }} · ${maxTokens.ifBlank { "—" }} token",
                 modifier = Modifier.weight(1f),
                 style = MaterialTheme.typography.bodySmall,
-                color = MutedInk,
+                color = Muted,
             )
             TextButton(enabled = !locked, onClick = { advancedOpen = !advancedOpen }) {
                 Text(if (advancedOpen) "Tutup" else "Buka")
@@ -353,7 +353,7 @@ fun AgentSettingsSection(
             if (draftDirty) "Ada perubahan belum disimpan." else "Semua perubahan tersimpan.",
             modifier = Modifier.weight(1f),
             style = MaterialTheme.typography.bodySmall,
-            color = if (draftDirty) CampusGreen else MutedInk,
+            color = if (draftDirty) Brand600 else Muted,
         )
         OutlinedButton(
             onClick = { resetDraft() },
@@ -410,7 +410,7 @@ private fun SettingsGroup(title: String, content: @Composable ColumnScope.() -> 
         Text(
             title,
             style = MaterialTheme.typography.labelMedium,
-            color = CampusGreen,
+            color = Brand600,
             fontWeight = FontWeight.SemiBold,
         )
         content()
@@ -420,8 +420,8 @@ private fun SettingsGroup(title: String, content: @Composable ColumnScope.() -> 
 @Composable
 private fun ConnectionStatus(state: AgentUiState) {
     val color = when {
-        state.message == null -> MutedInk
-        state.messageOk -> CampusGreen
+        state.message == null -> Muted
+        state.messageOk -> Brand600
         else -> MaterialTheme.colorScheme.error
     }
     Row(verticalAlignment = Alignment.Top) {
@@ -430,7 +430,7 @@ private fun ConnectionStatus(state: AgentUiState) {
         Text(
             state.message ?: "Koneksi belum diuji",
             style = MaterialTheme.typography.bodyMedium,
-            color = if (state.message == null) MutedInk else color,
+            color = if (state.message == null) Muted else color,
             maxLines = 3,
             overflow = TextOverflow.Ellipsis,
         )
@@ -439,7 +439,7 @@ private fun ConnectionStatus(state: AgentUiState) {
         Text(
             "Pesan server: $it",
             style = MaterialTheme.typography.bodySmall,
-            color = MutedInk,
+            color = Muted,
             maxLines = 3,
             overflow = TextOverflow.Ellipsis,
         )
@@ -455,7 +455,7 @@ private fun ModelPickerField(
     onOpen: () -> Unit,
 ) {
     Column {
-        Text(label, style = MaterialTheme.typography.bodySmall, color = MutedInk)
+        Text(label, style = MaterialTheme.typography.bodySmall, color = Muted)
         OutlinedButton(
             onClick = onOpen,
             enabled = enabled,
@@ -470,7 +470,7 @@ private fun ModelPickerField(
             )
             Icon(Icons.Outlined.ExpandMore, contentDescription = null)
         }
-        Text(supporting, style = MaterialTheme.typography.bodySmall, color = MutedInk)
+        Text(supporting, style = MaterialTheme.typography.bodySmall, color = Muted)
     }
 }
 
@@ -525,7 +525,7 @@ private fun ModelPickerSheet(
                     "${models.size} model dari server."
                 },
                 style = MaterialTheme.typography.bodySmall,
-                color = MutedInk,
+                color = Muted,
             )
             if (models.isNotEmpty()) {
                 OutlinedTextField(
@@ -550,7 +550,7 @@ private fun ModelPickerSheet(
                                 overflow = TextOverflow.Ellipsis,
                             )
                             if (model == value) {
-                                Icon(Icons.Outlined.Check, contentDescription = null, tint = CampusGreen)
+                                Icon(Icons.Outlined.Check, contentDescription = null, tint = Brand600)
                             }
                         }
                     }
@@ -559,10 +559,10 @@ private fun ModelPickerSheet(
                     Text(
                         "Tidak ada model yang cocok. Pakai isian manual di bawah.",
                         style = MaterialTheme.typography.bodySmall,
-                        color = MutedInk,
+                        color = Muted,
                     )
                 }
-                HorizontalDivider(color = Rule)
+                HorizontalDivider(color = Line)
             }
             OutlinedTextField(
                 value = manual, onValueChange = { manual = it },

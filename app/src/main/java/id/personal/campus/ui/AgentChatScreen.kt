@@ -1,5 +1,8 @@
 package id.personal.campus.ui
 
+import androidx.compose.material.icons.outlined.AutoAwesome
+import androidx.compose.ui.draw.clip
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
@@ -35,7 +38,6 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilledIconButton
-import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.MaterialTheme
@@ -115,7 +117,13 @@ fun AgentChatScreen(
         if (state.messages.isNotEmpty()) listState.animateScrollToItem(state.messages.lastIndex)
     }
 
+    Box(Modifier.fillMaxSize()) {
+    BatikPattern(Modifier.matchParentSize(), color = Brand500, alpha = 0.07f)
     Column(Modifier.fillMaxSize().imePadding()) {
+        Column(Modifier.fillMaxWidth().padding(start = 20.dp, end = 20.dp, top = 20.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+            Eyebrow("Asisten AI")
+            Text("Tanya Kampus", style = MaterialTheme.typography.headlineLarge)
+        }
         LazyColumn(
             state = listState,
             modifier = Modifier.weight(1f).fillMaxWidth(),
@@ -153,7 +161,6 @@ fun AgentChatScreen(
             if (state.busy && state.plan.isEmpty()) item(key = "thinking") { ThinkingRow() }
         }
 
-        HorizontalDivider(color = Rule)
         // Banner auto-approval tidak tampil di mode Offline: di sana perubahan
         // selalu menunggu Setuju, jadi banner itu akan menyesatkan.
         if (state.autoApproveWrites && state.modelMode != AgentChatModelMode.OFFLINE) AutoApprovalBanner()
@@ -161,21 +168,37 @@ fun AgentChatScreen(
         Composer(state, onInput = onInput, onSend = onSend, onStop = onStop)
         state.notice?.let { Notice(message = it, onDismiss = onConsumeNotice) }
     }
+    }
 }
 
 @Composable
 private fun IntroCard() {
-    PaperPanel {
-        Text("Asisten AI", style = MaterialTheme.typography.titleLarge)
-        Text(
-            "Tanya apa saja soal jadwal, tugas, dan catatanmu — cukup tulis permintaannya, tanpa " +
-                "memilih peran. Setiap perubahan menunggu persetujuan, kecuali /autoapproval aktif.",
-            color = MutedInk,
-        )
-        Text(
-            "Contoh: \"buat tugas untuk Pengantar Akuntansi besok\".",
-            color = CampusGreen,
-        )
+    Surface(
+        modifier = Modifier.fillMaxWidth().popShadow(CardShape),
+        color = Espresso, contentColor = Color.White, shape = CardShape, tonalElevation = 0.dp, shadowElevation = 0.dp,
+    ) {
+        Box {
+            BatikPattern(Modifier.matchParentSize(), color = Color.White, alpha = 0.10f)
+            Column(Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                Box(
+                    Modifier.size(48.dp).brandShadow(RoundedCornerShape(16.dp)).clip(RoundedCornerShape(16.dp)).background(Brand500),
+                    contentAlignment = Alignment.Center,
+                ) { Icon(Icons.Outlined.AutoAwesome, contentDescription = null, tint = Color.White, modifier = Modifier.size(24.dp)) }
+                Text("Asisten AI", Modifier.padding(top = 8.dp), style = MaterialTheme.typography.headlineSmall, color = Color.White)
+                Text(
+                    "Tanya apa saja soal jadwal, tugas, dan catatanmu — cukup tulis permintaannya, tanpa " +
+                        "memilih peran. Setiap perubahan menunggu persetujuan, kecuali /autoapproval aktif.",
+                    color = Color.White.copy(alpha = 0.7f), style = MaterialTheme.typography.bodyMedium,
+                )
+                Surface(color = Color.White.copy(alpha = 0.10f), contentColor = Brand200, shape = CircleShape) {
+                    Text(
+                        "Contoh: \"buat tugas untuk Pengantar Akuntansi besok\".",
+                        Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
+                        style = MaterialTheme.typography.bodySmall.copy(fontWeight = FontWeight.SemiBold),
+                    )
+                }
+            }
+        }
     }
 }
 
@@ -187,7 +210,7 @@ private fun SetupCard(setup: AgentSetup, onOpenSettings: () -> Unit, onRetry: ()
             Spacer(Modifier.width(8.dp))
             Text("Asisten belum siap", style = MaterialTheme.typography.titleMedium)
         }
-        Text(setup.problem ?: "Lengkapi alamat server, model, dan kunci API di Setelan.", color = MutedInk)
+        Text(setup.problem ?: "Lengkapi alamat server, model, dan kunci API di Setelan.", color = Muted)
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             Button(onClick = onOpenSettings) { Text("Buka Setelan") }
             OutlinedButton(onClick = onRetry) { Text("Periksa lagi") }
@@ -200,7 +223,7 @@ private fun MessageBubble(message: AgentChatMessage, onRetry: () -> Unit) {
     val fromUser = message.role == AgentChatRole.USER
     val clipboard = LocalClipboardManager.current
     val background = when {
-        fromUser -> CampusGreen
+        fromUser -> Brand500
         message.failureDetail != null -> MaterialTheme.colorScheme.errorContainer
         else -> Color.White
     }
@@ -212,8 +235,9 @@ private fun MessageBubble(message: AgentChatMessage, onRetry: () -> Unit) {
     ) {
         Surface(
             color = background,
-            shape = MaterialTheme.shapes.medium,
-            tonalElevation = if (fromUser) 0.dp else 1.dp,
+            shape = if (fromUser) RoundedCornerShape(20.dp, 20.dp, 6.dp, 20.dp) else RoundedCornerShape(20.dp, 20.dp, 20.dp, 6.dp),
+            border = if (fromUser) null else BorderStroke(1.dp, if (message.failureDetail != null) Danger500.copy(alpha = 0.3f) else Line),
+            tonalElevation = 0.dp,
             modifier = Modifier.fillMaxWidth(0.92f),
         ) {
             Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
@@ -241,11 +265,11 @@ private fun MessageBubble(message: AgentChatMessage, onRetry: () -> Unit) {
                 }
 
                 message.trace?.let { trace ->
-                    Text(trace, color = if (fromUser) Color.White else MutedInk, style = MaterialTheme.typography.bodySmall)
+                    Text(trace, color = if (fromUser) Color.White else Muted, style = MaterialTheme.typography.bodySmall)
                 }
 
                 if (message.stopped) {
-                    Text("Dihentikan sebelum selesai.", color = MutedInk, style = MaterialTheme.typography.bodySmall)
+                    Text("Dihentikan sebelum selesai.", color = Muted, style = MaterialTheme.typography.bodySmall)
                 }
 
                 if (message.failureDetail != null) {
@@ -290,8 +314,8 @@ private fun PlanPanel(plan: List<AgentPlanStep>, busy: Boolean) {
 @Composable
 private fun PlanStepRow(step: AgentPlanStep) {
     val color = when (step.status) {
-        AgentPlanStatus.RUNNING -> CampusGreen
-        AgentPlanStatus.DONE -> MutedInk
+        AgentPlanStatus.RUNNING -> Brand600
+        AgentPlanStatus.DONE -> Muted
         AgentPlanStatus.CANCELLED -> MaterialTheme.colorScheme.error
     }
     Row(verticalAlignment = Alignment.CenterVertically) {
@@ -311,28 +335,31 @@ private fun PlanStepRow(step: AgentPlanStep) {
 
 @Composable
 private fun ProposalCard(proposal: AgentWriteProposal, onApprove: () -> Unit, onDeny: () -> Unit) {
-    Surface(
-        color = MaterialTheme.colorScheme.primaryContainer,
-        shape = MaterialTheme.shapes.medium,
-        modifier = Modifier.fillMaxWidth(),
-    ) {
-        Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-            Text(
-                text = if (proposal.kind == AgentWriteKind.CREATE) "Perlu persetujuan" else "Perlu persetujuan",
-                style = MaterialTheme.typography.labelMedium,
-                color = CampusGreen,
-            )
-            Text(proposal.question, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
-            if (proposal.detail.isNotBlank()) Text(proposal.detail, color = MutedInk)
+    val shape = RoundedCornerShape(24.dp)
+    KarsaCard(Modifier.fillMaxWidth(), shape = shape, border = BorderStroke(1.dp, Brand200)) {
+        Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                Text(proposal.question, Modifier.weight(1f), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+                Badge("PERLU PERSETUJUAN", BadgeTone.Butter)
+            }
+            if (proposal.detail.isNotBlank()) Text(proposal.detail, color = Muted, style = MaterialTheme.typography.bodyMedium)
 
-            proposal.changes.forEach { change ->
-                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                    Text(change.label, color = MutedInk)
-                    Text(
-                        text = if (change.before.isNullOrBlank()) change.after else "${change.before} → ${change.after}",
-                        fontWeight = FontWeight.Medium,
-                        textAlign = TextAlign.End,
-                    )
+            if (proposal.changes.isNotEmpty()) {
+                Surface(color = Paper2, shape = TileShape, modifier = Modifier.fillMaxWidth()) {
+                    Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                        proposal.changes.forEach { change ->
+                            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                                Text(change.label, Modifier.width(84.dp), color = Muted, style = MaterialTheme.typography.bodySmall)
+                                Text(
+                                    text = if (change.before.isNullOrBlank()) change.after else "${change.before} → ${change.after}",
+                                    Modifier.weight(1f),
+                                    fontWeight = FontWeight.SemiBold,
+                                    style = MaterialTheme.typography.bodySmall,
+                                    textAlign = TextAlign.Start,
+                                )
+                            }
+                        }
+                    }
                 }
             }
 
@@ -342,7 +369,7 @@ private fun ProposalCard(proposal: AgentWriteProposal, onApprove: () -> Unit, on
 
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 Button(onClick = onApprove) { Text("Setuju") }
-                OutlinedButton(onClick = onDeny) { Text("Batal") }
+                OutlinedButton(onClick = onDeny, border = BorderStroke(1.dp, Line), colors = ButtonDefaults.outlinedButtonColors(containerColor = Color.White, contentColor = Ink)) { Text("Batal") }
             }
         }
     }
@@ -353,7 +380,7 @@ private fun ThinkingRow() {
     Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(horizontal = 4.dp)) {
         CircularProgressIndicator(modifier = Modifier.size(16.dp), strokeWidth = 2.dp)
         Spacer(Modifier.width(8.dp))
-        Text("Menghubungi model…", color = MutedInk)
+        Text("Menghubungi model…", color = Muted)
     }
 }
 
@@ -416,7 +443,7 @@ private fun ModelModeRow(state: AgentChatState, onModelMode: (AgentChatModelMode
             enabled = !state.busy,
             shape = CircleShape,
             color = if (state.busy) MaterialTheme.colorScheme.surfaceVariant else MaterialTheme.colorScheme.primaryContainer,
-            contentColor = if (state.busy) MutedInk else CampusGreen,
+            contentColor = if (state.busy) Muted else Brand600,
             border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
             tonalElevation = 0.dp,
             shadowElevation = 0.dp,
@@ -436,7 +463,7 @@ private fun ModelModeRow(state: AgentChatState, onModelMode: (AgentChatModelMode
         }
         Text(
             text = hint,
-            color = MutedInk,
+            color = Muted,
             style = MaterialTheme.typography.bodySmall,
             maxLines = 2,
             overflow = TextOverflow.Ellipsis,
@@ -475,7 +502,7 @@ private fun ModelModeSheet(
             verticalArrangement = Arrangement.spacedBy(8.dp),
         ) {
             Text("Mode model", style = MaterialTheme.typography.titleLarge)
-            Text("Berlaku untuk pesan berikutnya.", color = MutedInk, style = MaterialTheme.typography.bodySmall)
+            Text("Berlaku untuk pesan berikutnya.", color = Muted, style = MaterialTheme.typography.bodySmall)
             AgentChatModelMode.entries.forEach { mode ->
                 ModelModeOption(mode, mode == selected, setup) { chosen ->
                     // Animasi tutup dulu supaya pilihan tidak "menghilang" mendadak.
@@ -493,7 +520,7 @@ private fun ModelModeSheet(
                 } else {
                     "Pilihan tidak mengubah setelan tersimpan."
                 },
-                color = MutedInk,
+                color = Muted,
                 style = MaterialTheme.typography.bodySmall,
             )
         }
@@ -544,17 +571,17 @@ private fun ModelModeOption(
             RadioButton(
                 selected = selected,
                 onClick = null,
-                colors = RadioButtonDefaults.colors(selectedColor = CampusGreen),
+                colors = RadioButtonDefaults.colors(selectedColor = Brand600),
             )
             Column(
                 modifier = Modifier.weight(1f),
                 verticalArrangement = Arrangement.spacedBy(2.dp),
             ) {
                 Text(mode.label, style = MaterialTheme.typography.titleMedium)
-                Text(description, color = MutedInk, style = MaterialTheme.typography.bodySmall)
+                Text(description, color = Muted, style = MaterialTheme.typography.bodySmall)
                 Text(
                     text = models,
-                    color = CampusGreen,
+                    color = Brand600,
                     style = MaterialTheme.typography.bodySmall.copy(fontFamily = FontFamily.Monospace),
                 )
             }
@@ -580,9 +607,10 @@ private fun Composer(
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Surface(
-            color = MaterialTheme.colorScheme.surfaceContainerHigh,
+            color = Color.White,
             shape = RoundedCornerShape(28.dp),
-            modifier = Modifier.weight(1f).heightIn(min = 56.dp, max = 148.dp),
+            border = BorderStroke(1.dp, Line),
+            modifier = Modifier.weight(1f).heightIn(min = 56.dp, max = 148.dp).cardShadow(RoundedCornerShape(28.dp)),
         ) {
             Row(
                 modifier = Modifier.padding(start = 16.dp, end = 8.dp, top = 8.dp, bottom = 8.dp),
@@ -594,14 +622,14 @@ private fun Composer(
                     modifier = Modifier.weight(1f).heightIn(min = 40.dp, max = 132.dp),
                     enabled = !state.awaitingDecision,
                     textStyle = MaterialTheme.typography.bodyLarge.copy(color = Ink),
-                    cursorBrush = SolidColor(CampusGreen),
+                    cursorBrush = SolidColor(Brand500),
                     maxLines = 5,
                     keyboardOptions = KeyboardOptions(imeAction = ImeAction.Send),
                     keyboardActions = KeyboardActions(onSend = { onSend() }),
                     decorationBox = { innerTextField ->
                         Box(contentAlignment = Alignment.CenterStart) {
                             if (state.input.isEmpty()) {
-                                Text("Tanya jadwal, tugas, atau catatan…", color = MutedInk)
+                                Text("Tanya jadwal, tugas, atau catatan…", color = Muted)
                             }
                             innerTextField()
                         }
@@ -613,10 +641,10 @@ private fun Composer(
                     enabled = if (state.busy) true else state.canSend,
                     modifier = Modifier.size(40.dp),
                     colors = IconButtonDefaults.filledIconButtonColors(
-                        containerColor = CampusGreen,
+                        containerColor = if (state.busy) Espresso else Brand500,
                         contentColor = Color.White,
-                        disabledContainerColor = MaterialTheme.colorScheme.surfaceVariant,
-                        disabledContentColor = MutedInk,
+                        disabledContainerColor = Paper3,
+                        disabledContentColor = Muted,
                     ),
                 ) {
                     Icon(
@@ -631,7 +659,7 @@ private fun Composer(
     if (state.awaitingDecision) {
         Text(
             "Pilih Setuju atau Batal untuk melanjutkan.",
-            color = MutedInk,
+            color = Muted,
             style = MaterialTheme.typography.bodySmall,
             modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp),
         )

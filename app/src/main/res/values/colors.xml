@@ -7,4 +7,7 @@
     <!-- Room badge: dark green block so the code reads from across the room. -->
     <color name="campus_room_badge_ink">#FFFFFF</color>
     <color name="campus_room_badge_label">#C9DCCB</color>
+    <!-- Sistem desain Karsa (kertas hangat + oranye brand), dipakai tema aplikasi. -->
+    <color name="karsa_paper">#FBF5EC</color>
+    <color name="karsa_brand">#E36B0F</color>
 </resources>

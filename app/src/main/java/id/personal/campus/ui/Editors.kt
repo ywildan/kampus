@@ -1,7 +1,11 @@
 package id.personal.campus.ui
 
 import androidx.activity.compose.BackHandler
+import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.Row
@@ -18,18 +22,20 @@ import androidx.compose.material.icons.outlined.Close
 import androidx.compose.material.icons.outlined.ExpandMore
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Switch
+import androidx.compose.material3.SwitchDefaults
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -40,6 +46,8 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
@@ -69,22 +77,32 @@ fun EditorFrame(
         BackHandler { requestClose() }
         Surface(Modifier.fillMaxSize(), color = Paper) {
             Column(Modifier.fillMaxSize().safeDrawingPadding().imePadding()) {
-                Row(Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 8.dp), verticalAlignment = Alignment.CenterVertically) {
-                    IconButton(enabled = !busy, onClick = requestClose) { Icon(Icons.Outlined.Close, contentDescription = "Tutup formulir") }
-                    Text(title, Modifier.weight(1f).padding(horizontal = 8.dp), style = MaterialTheme.typography.titleLarge)
+                Box(Modifier.fillMaxWidth()) {
+                    BatikPattern(Modifier.matchParentSize(), color = Brand500, alpha = 0.10f)
+                    Row(Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 10.dp), verticalAlignment = Alignment.CenterVertically) {
+                        IconButton(
+                            enabled = !busy, onClick = requestClose,
+                            colors = IconButtonDefaults.iconButtonColors(containerColor = Color.White, contentColor = Ink),
+                            modifier = Modifier.border(1.dp, Line, CircleShape),
+                        ) { Icon(Icons.Outlined.Close, contentDescription = "Tutup formulir") }
+                        Text(title, Modifier.weight(1f).padding(horizontal = 12.dp), style = MaterialTheme.typography.titleLarge)
+                    }
                 }
-                HorizontalDivider(color = Rule)
+                HorizontalDivider(color = Line)
                 Column(
                     Modifier.weight(1f).fillMaxWidth().verticalScroll(rememberScrollState()).padding(20.dp),
                     verticalArrangement = Arrangement.spacedBy(16.dp), content = content,
                 )
                 SnackbarHost(snackbar, Modifier.fillMaxWidth())
                 if (onSave != null || onDelete != null) {
-                    HorizontalDivider(color = Rule)
+                    HorizontalDivider(color = Line)
                     Row(Modifier.fillMaxWidth().padding(12.dp), horizontalArrangement = Arrangement.spacedBy(12.dp), verticalAlignment = Alignment.CenterVertically) {
-                        if (onDelete != null) TextButton(enabled = !busy, onClick = { delete = true }) { Text("Hapus", color = MaterialTheme.colorScheme.error) }
-                        if (onSave != null) Button(modifier = Modifier.weight(1f).heightIn(min = 48.dp), enabled = !busy, onClick = onSave) {
-                            Text(if (busy) "Menyimpan…" else "Simpan")
+                        if (onDelete != null) TextButton(
+                            enabled = !busy, onClick = { delete = true },
+                            colors = ButtonDefaults.textButtonColors(contentColor = Danger500),
+                        ) { Text("Hapus", fontWeight = FontWeight.Bold) }
+                        if (onSave != null) Button(modifier = Modifier.weight(1f).heightIn(min = 52.dp), enabled = !busy, onClick = onSave) {
+                            Text(if (busy) "Menyimpan…" else "Simpan", fontWeight = FontWeight.Bold)
                         }
                     }
                 }
@@ -92,10 +110,14 @@ fun EditorFrame(
         }
         if (discard) AlertDialog(
             onDismissRequest = { discard = false }, title = { Text("Abaikan perubahan?") },
-            text = { Text("Isian yang belum disimpan akan hilang.") },
-            confirmButton = { TextButton(onClick = { discard = false; onDismiss() }) { Text("Abaikan") } },
-            dismissButton = { TextButton(onClick = { discard = false }) { Text("Lanjut mengisi") } },
-            containerColor = Paper, tonalElevation = 0.dp,
+            text = { Text("Isian yang belum disimpan akan hilang.", color = Ink2) },
+            confirmButton = {
+                TextButton(onClick = { discard = false; onDismiss() }, colors = ButtonDefaults.textButtonColors(contentColor = Danger500)) { Text("Abaikan", fontWeight = FontWeight.Bold) }
+            },
+            dismissButton = {
+                TextButton(onClick = { discard = false }, colors = ButtonDefaults.textButtonColors(contentColor = Brand600)) { Text("Lanjut mengisi", fontWeight = FontWeight.Bold) }
+            },
+            containerColor = Color.White, shape = CardShape, tonalElevation = 0.dp,
         )
         if (delete && onDelete != null) DeleteConfirmation(
             title = "data ini", explanation = deleteExplanation, busy = busy,
@@ -108,13 +130,16 @@ fun EditorFrame(
 fun <T> ChoiceField(label: String, selected: T, options: List<Pair<T, String>>, enabled: Boolean = true, onSelect: (T) -> Unit) {
     var expanded by remember { mutableStateOf(false) }
     Column {
-        OutlinedButton(modifier = Modifier.fillMaxWidth().heightIn(min = 56.dp), enabled = enabled, onClick = { expanded = true }) {
+        OutlinedButton(
+            modifier = Modifier.fillMaxWidth().heightIn(min = 56.dp), enabled = enabled, onClick = { expanded = true },
+            shape = TileShape, colors = fieldButtonColors(), border = BorderStroke(0.dp, Color.Transparent),
+        ) {
             Text("$label: ${options.find { it.first == selected }?.second ?: "Belum dipilih"}", Modifier.weight(1f))
-            Icon(Icons.Outlined.ExpandMore, contentDescription = null)
+            Icon(Icons.Outlined.ExpandMore, contentDescription = null, tint = Muted)
         }
         DropdownMenu(
             expanded = expanded, onDismissRequest = { expanded = false },
-            modifier = Modifier.heightIn(max = 360.dp), containerColor = Paper,
+            modifier = Modifier.heightIn(max = 360.dp), containerColor = Color.White, shape = TileShape,
             tonalElevation = 0.dp, shadowElevation = 0.dp,
         ) {
             options.forEach { (value, text) ->
@@ -126,12 +151,21 @@ fun <T> ChoiceField(label: String, selected: T, options: List<Pair<T, String>>, 
 
 @Composable
 fun ToggleField(title: String, description: String, checked: Boolean, enabled: Boolean, onCheckedChange: (Boolean) -> Unit) {
-    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp), verticalAlignment = Alignment.CenterVertically) {
-        Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-            Text(title, style = MaterialTheme.typography.titleMedium)
-            Text(description, style = MaterialTheme.typography.bodySmall, color = MutedInk)
+    Surface(color = Paper2, shape = TileShape, modifier = Modifier.fillMaxWidth()) {
+        Row(Modifier.padding(16.dp), horizontalArrangement = Arrangement.spacedBy(16.dp), verticalAlignment = Alignment.CenterVertically) {
+            Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                Text(title, style = MaterialTheme.typography.titleMedium)
+                Text(description, style = MaterialTheme.typography.bodySmall, color = Muted)
+            }
+            Switch(
+                checked = checked, enabled = enabled, onCheckedChange = onCheckedChange,
+                colors = SwitchDefaults.colors(
+                    checkedTrackColor = Brand500, checkedThumbColor = Color.White, checkedBorderColor = Brand500,
+                    uncheckedTrackColor = Paper3, uncheckedThumbColor = Color.White, uncheckedBorderColor = Paper3,
+                ),
+                modifier = Modifier.semantics { contentDescription = title },
+            )
         }
-        Switch(checked = checked, enabled = enabled, onCheckedChange = onCheckedChange, modifier = Modifier.semantics { contentDescription = title })
     }
 }
 
@@ -155,19 +189,19 @@ fun CourseEditor(course: CourseEntity, zoneId: String, busy: Boolean, snackbar: 
         onDelete = if (course.id != 0L) onDelete else null,
         deleteExplanation = "Mata kuliah ini dihapus. Tugas terkait tetap disimpan tanpa tautan mata kuliah.",
     ) {
-        Text("Jadwal mingguan · ${zoneLabel(zoneId)}", color = MutedInk)
-        OutlinedTextField(name, { name = it }, Modifier.fillMaxWidth(), enabled = !busy, label = { Text("Nama mata kuliah") }, singleLine = true, isError = attempted && name.isBlank())
+        Text("Jadwal mingguan · ${zoneLabel(zoneId)}", color = Muted)
+        KarsaTextField(name, { name = it }, Modifier.fillMaxWidth(), enabled = !busy, label = { Text("Nama mata kuliah") }, singleLine = true, isError = attempted && name.isBlank())
         if (attempted && name.isBlank()) ValidationText("Nama mata kuliah wajib diisi.")
         ChoiceField("Hari", weekday, DayNames.mapIndexed { index, day -> index + 1 to day }, !busy) { weekday = it }
         TimeField("Jam mulai", start, !busy) { start = it }
         TimeField("Jam selesai", end, !busy) { end = it }
         if (end <= start) ValidationText("Jam selesai harus setelah jam mulai pada hari yang sama.")
-        OutlinedTextField(room, { room = it }, Modifier.fillMaxWidth(), enabled = !busy, label = { Text("Kode ruang") }, singleLine = true, isError = attempted && room.isBlank())
+        KarsaTextField(room, { room = it }, Modifier.fillMaxWidth(), enabled = !busy, label = { Text("Kode ruang") }, singleLine = true, isError = attempted && room.isBlank())
         if (attempted && room.isBlank()) ValidationText("Kode ruang wajib diisi.")
-        OutlinedTextField(section, { section = it }, Modifier.fillMaxWidth(), enabled = !busy, label = { Text("Kelas / seksi (opsional)") }, singleLine = true)
-        OutlinedTextField(roomNote, { roomNote = it }, Modifier.fillMaxWidth(), enabled = !busy, label = { Text("Keterangan ruang (opsional)") }, minLines = 2)
+        KarsaTextField(section, { section = it }, Modifier.fillMaxWidth(), enabled = !busy, label = { Text("Kelas / seksi (opsional)") }, singleLine = true)
+        KarsaTextField(roomNote, { roomNote = it }, Modifier.fillMaxWidth(), enabled = !busy, label = { Text("Keterangan ruang (opsional)") }, minLines = 2)
         ToggleField("Mata kuliah aktif", "Nonaktif tetap tersimpan di jadwal, tetapi tidak masuk pertemuan berikutnya atau pengingat.", enabled, !busy) { enabled = it }
-        Text("Perulangan mengikuti rentang semester di Pengaturan. Jadwal lintas tengah malam tidak didukung.", style = MaterialTheme.typography.bodySmall, color = MutedInk)
+        Text("Perulangan mengikuti rentang semester di Pengaturan. Jadwal lintas tengah malam tidak didukung.", style = MaterialTheme.typography.bodySmall, color = Muted)
     }
 }
 
@@ -187,15 +221,15 @@ fun TaskEditor(task: TaskEntity, courses: List<CourseEntity>, today: LocalDate, 
         onSave = { attempted = true; if (title.isNotBlank()) onSave(draft) },
         onDelete = if (task.id != 0L) onDelete else null,
     ) {
-        OutlinedTextField(title, { title = it }, Modifier.fillMaxWidth(), enabled = !busy, label = { Text("Judul tugas") }, isError = attempted && title.isBlank())
+        KarsaTextField(title, { title = it }, Modifier.fillMaxWidth(), enabled = !busy, label = { Text("Judul tugas") }, isError = attempted && title.isBlank())
         if (attempted && title.isBlank()) ValidationText("Judul tugas wajib diisi.")
         val choices: List<Pair<Long?, String>> = listOf(null to "Tanpa mata kuliah") + courses.sortedBy { it.name }.map {
             it.id to "${it.name} · ${DayNames[it.weekday - 1]}${if (it.enabled) "" else " · Nonaktif"}"
         }
         ChoiceField("Mata kuliah", safeCourseId, choices, !busy) { courseId = it }
         DateField("Tenggat", due, today, { due = it }, enabled = !busy)
-        Text("Tenggat berupa tanggal di zona jadwal. Tugas tidak mengirim pengingat notifikasi.", style = MaterialTheme.typography.bodySmall, color = MutedInk)
-        OutlinedTextField(notes, { notes = it }, Modifier.fillMaxWidth(), enabled = !busy, label = { Text("Catatan tugas (opsional)") }, minLines = 4)
+        Text("Tenggat berupa tanggal di zona jadwal. Tugas tidak mengirim pengingat notifikasi.", style = MaterialTheme.typography.bodySmall, color = Muted)
+        KarsaTextField(notes, { notes = it }, Modifier.fillMaxWidth(), enabled = !busy, label = { Text("Catatan tugas (opsional)") }, minLines = 4)
         ToggleField("Tugas selesai", "Matikan untuk mengembalikan ke daftar tugas aktif.", completed, !busy) { completed = it }
     }
 }
@@ -212,9 +246,9 @@ fun NoteEditor(note: NoteEntity, busy: Boolean, snackbar: SnackbarHostState, onD
         onSave = { attempted = true; if (title.isNotBlank()) onSave(draft) },
         onDelete = if (note.id != 0L) onDelete else null,
     ) {
-        Text("Catatan manual Anda, bukan pengumuman resmi kampus. Tersimpan hanya di perangkat.", color = MutedInk)
-        OutlinedTextField(title, { title = it }, Modifier.fillMaxWidth(), enabled = !busy, label = { Text("Judul informasi") }, isError = attempted && title.isBlank())
+        Text("Catatan manual Anda, bukan pengumuman resmi kampus. Tersimpan hanya di perangkat.", color = Muted)
+        KarsaTextField(title, { title = it }, Modifier.fillMaxWidth(), enabled = !busy, label = { Text("Judul informasi") }, isError = attempted && title.isBlank())
         if (attempted && title.isBlank()) ValidationText("Judul informasi wajib diisi.")
-        OutlinedTextField(body, { body = it }, Modifier.fillMaxWidth(), enabled = !busy, label = { Text("Isi catatan (opsional)") }, minLines = 6)
+        KarsaTextField(body, { body = it }, Modifier.fillMaxWidth(), enabled = !busy, label = { Text("Isi catatan (opsional)") }, minLines = 6)
     }
 }

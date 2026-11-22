@@ -1,36 +1,35 @@
 package id.personal.campus.ui
 
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeOut
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.WindowInsetsSides
 import androidx.compose.foundation.layout.consumeWindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.only
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeDrawing
 import androidx.compose.foundation.layout.windowInsetsPadding
-import androidx.compose.foundation.selection.selectable
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.CalendarMonth
 import androidx.compose.material.icons.outlined.Checklist
 import androidx.compose.material.icons.outlined.Settings
-import androidx.compose.material.icons.outlined.SmartToy
+import androidx.compose.material.icons.outlined.AutoAwesome
 import androidx.compose.material.icons.outlined.Today
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.HorizontalDivider
-import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarDuration
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -43,7 +42,6 @@ import androidx.compose.runtime.saveable.rememberSaveableStateHolder
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.Lifecycle
@@ -53,14 +51,46 @@ import androidx.lifecycle.repeatOnLifecycle
 import id.personal.campus.data.CourseEntity
 import id.personal.campus.data.NoteEntity
 import id.personal.campus.data.TaskEntity
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.collect
 
 // Tab Asisten
 import id.personal.campus.ui.AgentChatScreen
 import id.personal.campus.ui.AgentChatViewModel
 
+private val DockItems = listOf(
+    DockItem("Hari Ini", Icons.Outlined.Today),
+    DockItem("Jadwal", Icons.Outlined.CalendarMonth),
+    DockItem("Asisten", Icons.Outlined.AutoAwesome),
+    DockItem("Tugas", Icons.Outlined.Checklist),
+    DockItem("Pengaturan", Icons.Outlined.Settings),
+)
+
+/**
+ * Akar aplikasi: konten utama ([CampusAppContent]) ditutup splash oranye bermotif Truntum
+ * selama minimal 1,3 detik atau sampai data pertama selesai dimuat, lalu memudar.
+ */
 @Composable
 fun CampusApp(model: CampusViewModel, chatModel: AgentChatViewModel) {
+    val loaded by model.state.collectAsStateWithLifecycle()
+    var minElapsed by rememberSaveable { mutableStateOf(false) }
+    LaunchedEffect(Unit) {
+        if (!minElapsed) {
+            delay(1_300)
+            minElapsed = true
+        }
+    }
+    Box(Modifier.fillMaxSize()) {
+        CampusAppContent(model, chatModel)
+        AnimatedVisibility(
+            visible = !minElapsed || (loaded.loading && loaded.data == null),
+            exit = fadeOut(tween(500)),
+        ) { SplashScreen() }
+    }
+}
+
+@Composable
+private fun CampusAppContent(model: CampusViewModel, chatModel: AgentChatViewModel) {
     val state by model.state.collectAsStateWithLifecycle()
     val agentState by model.agent.collectAsStateWithLifecycle()
     val navigation by model.navigation.collectAsStateWithLifecycle()
@@ -107,28 +137,14 @@ fun CampusApp(model: CampusViewModel, chatModel: AgentChatViewModel) {
         contentWindowInsets = WindowInsets.safeDrawing,
         snackbarHost = { if (!modalOpen) SnackbarHost(snackbar) },
         bottomBar = {
-            // Urutan tab: Asisten di tengah (indeks 2 dari 5).
-            val labels = listOf("Hari Ini", "Jadwal", "Asisten", "Tugas", "Pengaturan")
-            val icons = listOf(Icons.Outlined.Today, Icons.Outlined.CalendarMonth, Icons.Outlined.SmartToy, Icons.Outlined.Checklist, Icons.Outlined.Settings)
-            Surface(color = Paper, tonalElevation = 0.dp, shadowElevation = 0.dp) {
-                Column(Modifier.navigationBarsPadding().windowInsetsPadding(WindowInsets.safeDrawing.only(WindowInsetsSides.Horizontal))) {
-                    HorizontalDivider(color = Rule)
-                    Row(Modifier.fillMaxWidth()) {
-                        labels.forEachIndexed { index, label ->
-                            Column(
-                                modifier = Modifier.weight(1f).heightIn(min = 72.dp)
-                                    .selectable(selected = tab == index, enabled = data != null, role = Role.Tab, onClick = { tab = index })
-                                    .padding(horizontal = 4.dp, vertical = 12.dp),
-                                horizontalAlignment = Alignment.CenterHorizontally,
-                                verticalArrangement = Arrangement.spacedBy(4.dp),
-                            ) {
-                                val color = if (tab == index) CampusGreen else MutedInk
-                                Icon(icons[index], contentDescription = null, tint = color)
-                                Text(label, color = color, style = MaterialTheme.typography.labelMedium, textAlign = TextAlign.Center)
-                            }
-                        }
-                    }
-                }
+            // Urutan tab: Asisten di tengah (indeks 2 dari 5), tombolnya menonjol dari Dock.
+            Box(
+                Modifier.fillMaxWidth().background(Paper)
+                    .navigationBarsPadding()
+                    .windowInsetsPadding(WindowInsets.safeDrawing.only(WindowInsetsSides.Horizontal))
+                    .padding(start = 12.dp, end = 12.dp, top = 8.dp, bottom = 12.dp),
+            ) {
+                KarsaDock(DockItems, selected = tab, enabled = data != null, onSelect = { tab = it })
             }
         },
     ) { padding ->
@@ -161,6 +177,7 @@ fun CampusApp(model: CampusViewModel, chatModel: AgentChatViewModel) {
                             onTasks = { tab = 3 }, onTask = { taskEditorId = it },
                             onTaskCompleted = { model.saveTask(it) },
                             onAddNote = { noteEditorId = -1 }, onNote = { noteEditorId = it },
+                            onAssistant = { tab = 2 },
                         )
                         1 -> ScheduleScreen(data.courses, data.settings.zoneId, state.saving,
                             onAdd = { courseEditorId = -1 }, onOpen = { detailId = it },
