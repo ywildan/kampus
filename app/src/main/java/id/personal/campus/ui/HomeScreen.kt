@@ -11,7 +11,6 @@ import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -25,8 +24,6 @@ import androidx.compose.material.icons.outlined.AutoAwesome
 import androidx.compose.material.icons.outlined.CalendarMonth
 import androidx.compose.material.icons.outlined.ChevronRight
 import androidx.compose.material.icons.outlined.WarningAmber
-import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
@@ -35,7 +32,13 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.tween
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.buildAnnotatedString
@@ -100,11 +103,24 @@ fun HomeScreen(
     ).take(3)
     val preview = !data.settings.semesterConfirmed
     val zone = zoneLabel(data.settings.zoneId)
-    LazyColumn(Modifier.fillMaxSize(), contentPadding = PaddingValues(start = 20.dp, end = 20.dp, top = 20.dp, bottom = 24.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+    val listState = androidx.compose.foundation.lazy.rememberLazyListState()
+    // Konten muncul bertahap: header dulu, lalu isi, supaya layar tidak "melompat" saat dibuka.
+    val enter by rememberEnterProgress()
+    LazyColumn(
+        state = listState,
+        modifier = Modifier
+            .fillMaxSize()
+            .graphicsLayer {
+                alpha = enter
+                translationY = riseProgress(enter, 10f) * density
+            },
+        contentPadding = PaddingValues(start = 20.dp, end = 20.dp, top = 20.dp, bottom = 24.dp),
+        verticalArrangement = Arrangement.spacedBy(12.dp),
+    ) {
         item {
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                 TruntumMark(36.dp)
-                Text("Kampus", Modifier.weight(1f), style = MaterialTheme.typography.titleLarge.copy(fontSize = 20.sp, fontWeight = FontWeight.ExtraBold))
+                Text("Kampus", Modifier.weight(1f), style = MaterialTheme.typography.headlineSmall.copy(fontSize = 20.sp))
                 Badge(zone, BadgeTone.Neutral)
                 Badge(if (preview) "PRATINJAU" else "TERKONFIRMASI", if (preview) BadgeTone.Butter else BadgeTone.Leaf)
             }
@@ -134,14 +150,14 @@ fun HomeScreen(
                             "Tanggal semester belum dikonfirmasi. Anda boleh melihat dan mengedit jadwal sekarang; pengingat belum berjalan.",
                             style = MaterialTheme.typography.bodySmall.copy(fontWeight = FontWeight.Medium),
                         )
-                        Button(
+                        KarsaButton(
+                            "Atur tanggal semester",
                             onClick = onSettings,
-                            modifier = Modifier.padding(top = 8.dp).heightIn(min = 40.dp),
-                            colors = ButtonDefaults.buttonColors(containerColor = Butter700, contentColor = Color.White),
-                        ) {
-                            Text("Atur tanggal semester", fontWeight = FontWeight.Bold)
-                            Icon(Icons.AutoMirrored.Outlined.ArrowForward, contentDescription = null, Modifier.padding(start = 6.dp).size(16.dp))
-                        }
+                            modifier = Modifier.padding(top = 10.dp),
+                            size = KarsaButtonSize.Sm,
+                            variant = KarsaButtonVariant.Dark,
+                            trailingIcon = Icons.AutoMirrored.Outlined.ArrowForward,
+                        )
                     }
                 }
             }
@@ -185,10 +201,12 @@ fun HomeScreen(
                 },
                 action = if (schedule.mode != ScheduleMode.EMPTY) {
                     {
-                        Button(
+                        KarsaButton(
+                            "Tinjau semester",
                             onClick = onSettings,
-                            colors = ButtonDefaults.buttonColors(containerColor = Brand100, contentColor = Brand700),
-                        ) { Text("Tinjau semester") }
+                            variant = KarsaButtonVariant.Soft,
+                            size = KarsaButtonSize.Sm,
+                        )
                     }
                 } else null,
             )
@@ -211,20 +229,22 @@ fun HomeScreen(
                 title = "Simpan hal yang perlu diingat",
                 description = "Misalnya lokasi dosen, daftar bacaan, atau informasi administrasi.",
                 action = {
-                    Button(onClick = onAddNote, colors = ButtonDefaults.buttonColors(containerColor = Brand100, contentColor = Brand700)) { Text("Tambah catatan") }
+                    KarsaButton("Tambah catatan", onClick = onAddNote, variant = KarsaButtonVariant.Soft, size = KarsaButtonSize.Sm)
                 },
             )
         }
         items(data.notes.sortedByDescending { it.id }, key = { "note-${it.id}" }) { note ->
-            Surface(
-                onClick = { onNote(note.id) }, modifier = Modifier.fillMaxWidth(), color = Color.White,
-                border = BorderStroke(1.dp, Line), shape = RoundedCornerShape(20.dp),
-                shadowElevation = 0.dp, tonalElevation = 0.dp,
+            KarsaCard(
+                Modifier.fillMaxWidth(),
+                onClick = { onNote(note.id) },
+                shape = ListShape,
+                shadowed = false,
+                border = BorderStroke(1.dp, Line),
             ) {
                 Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
                     Text(note.title, style = MaterialTheme.typography.titleLarge.copy(fontSize = 17.sp))
                     if (note.body.isNotBlank()) Text(note.body, style = MaterialTheme.typography.bodyMedium, color = Ink2, maxLines = 3)
-                    Text("Edit atau hapus catatan", color = Brand600, style = MaterialTheme.typography.labelLarge.copy(fontSize = 12.sp))
+                    Text("Edit atau hapus catatan", color = Brand600, style = MaterialTheme.typography.labelSmall.copy(letterSpacing = 0.sp))
                 }
             }
         }
@@ -257,9 +277,20 @@ private fun OccurrenceHero(occurrence: Occurrence, label: String, zoneId: String
     val trailing = if (active) "Sisa ${durationLabel(leftMinutes)}" else {
         relativeDay(occurrence, now) + if (occurrence.start.toLocalDate() == now.toLocalDate()) " · ${durationLabel(untilMinutes)} lagi" else ""
     }
+    val interaction = remember { MutableInteractionSource() }
+    val press by pressScale(interaction, 0.985f)
     Surface(
-        onClick = onClick, modifier = Modifier.fillMaxWidth().popShadow(shape),
-        color = Espresso, contentColor = Color.White, shape = shape, tonalElevation = 0.dp, shadowElevation = 0.dp,
+        onClick = onClick,
+        modifier = Modifier
+            .fillMaxWidth()
+            .popShadow(shape)
+            .graphicsLayer { scaleX = press; scaleY = press },
+        interactionSource = interaction,
+        color = Espresso,
+        contentColor = Color.White,
+        shape = shape,
+        tonalElevation = 0.dp,
+        shadowElevation = 0.dp,
     ) {
         Box {
             BatikPattern(Modifier.matchParentSize(), color = Color.White, alpha = 0.10f)
@@ -306,8 +337,14 @@ private fun OccurrenceHero(occurrence: Occurrence, label: String, zoneId: String
                     }
                 }
                 if (active) {
+                    // Progres waktu berjalan dianimasikan halus, bukan melompat tiap menit.
+                    val animatedProgress by animateFloatAsState(
+                        targetValue = progress,
+                        animationSpec = tween(KarsaMotion.Medium, easing = KarsaMotion.Standard),
+                        label = "heroProgress",
+                    )
                     Box(Modifier.padding(top = 16.dp).fillMaxWidth().height(6.dp).clip(CircleShape).background(Color.White.copy(alpha = 0.15f))) {
-                        Box(Modifier.fillMaxHeight().fillMaxWidth(progress).clip(CircleShape).background(Brand400))
+                        Box(Modifier.fillMaxHeight().fillMaxWidth(animatedProgress).clip(CircleShape).background(Brand400))
                     }
                 }
                 Row(Modifier.padding(top = 16.dp), verticalAlignment = Alignment.CenterVertically) {
@@ -343,9 +380,21 @@ private fun NextCompactCard(occurrence: Occurrence, label: String, now: ZonedDat
 @Composable
 private fun AssistantCta(onClick: () -> Unit) {
     val shape = RoundedCornerShape(24.dp)
+    val interaction = remember { MutableInteractionSource() }
+    val press by pressScale(interaction, 0.98f)
     Surface(
-        onClick = onClick, modifier = Modifier.fillMaxWidth().padding(top = 8.dp).brandShadow(shape),
-        color = Brand500, contentColor = Color.White, shape = shape, tonalElevation = 0.dp, shadowElevation = 0.dp,
+        onClick = onClick,
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(top = 8.dp)
+            .brandShadow(shape)
+            .graphicsLayer { scaleX = press; scaleY = press },
+        interactionSource = interaction,
+        color = Brand500,
+        contentColor = Color.White,
+        shape = shape,
+        tonalElevation = 0.dp,
+        shadowElevation = 0.dp,
     ) {
         Box {
             BatikPattern(Modifier.matchParentSize(), color = Color.White, alpha = 0.20f)

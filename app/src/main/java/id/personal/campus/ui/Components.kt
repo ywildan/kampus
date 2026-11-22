@@ -2,14 +2,22 @@ package id.personal.campus.ui
 
 import android.app.DatePickerDialog
 import android.app.TimePickerDialog
+import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.interaction.collectIsFocusedAsState
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
@@ -18,31 +26,38 @@ import androidx.compose.foundation.selection.toggleable
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.ArrowForwardIos
 import androidx.compose.material.icons.outlined.CalendarMonth
 import androidx.compose.material.icons.outlined.Check
 import androidx.compose.material.icons.outlined.ChevronRight
+import androidx.compose.material.icons.outlined.DeleteOutline
 import androidx.compose.material.icons.outlined.Schedule
 import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.ripple
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.State
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Shape
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import java.time.LocalDate
@@ -62,23 +77,27 @@ fun zoneLabel(zone: String): String = when (zone) {
     else -> zone
 }
 
-// ───────── Bayangan (cardShadow / popShadow / brandShadow di replika web) ─────────
+// ───────── Bayangan (cardShadow / popShadow / brandShadow di asset-karsa) ─────────
 
 val CardShape: Shape = RoundedCornerShape(28.dp)
 val TileShape: Shape = RoundedCornerShape(16.dp)
+val ListShape: Shape = RoundedCornerShape(20.dp)
 
 fun Modifier.cardShadow(shape: Shape = CardShape): Modifier =
-    shadow(8.dp, shape, ambientColor = Espresso.copy(alpha = 0.16f), spotColor = Espresso.copy(alpha = 0.26f))
+    shadow(10.dp, shape, ambientColor = Espresso.copy(alpha = 0.14f), spotColor = Espresso.copy(alpha = 0.24f))
 
 fun Modifier.popShadow(shape: Shape = CardShape): Modifier =
-    shadow(20.dp, shape, ambientColor = Espresso.copy(alpha = 0.30f), spotColor = Espresso.copy(alpha = 0.45f))
+    shadow(22.dp, shape, ambientColor = Espresso.copy(alpha = 0.30f), spotColor = Espresso.copy(alpha = 0.42f))
 
 fun Modifier.brandShadow(shape: Shape = CircleShape): Modifier =
-    shadow(10.dp, shape, ambientColor = Brand500.copy(alpha = 0.40f), spotColor = Brand500.copy(alpha = 0.65f))
+    shadow(10.dp, shape, ambientColor = Brand500.copy(alpha = 0.42f), spotColor = Brand500.copy(alpha = 0.62f))
 
 // ───────── Kartu ─────────
 
-/** Kartu putih bersudut 28 dp dengan bayangan lembut (Card di replika web). */
+/**
+ * Kartu putih bersudut 28 dp dengan bayangan lembut dan guratan 1 dp tinta 5%.
+ * Saat bisa diketuk, kartu mengecil sedikit (0,98) ketika ditekan agar terasa "empuk".
+ */
 @Composable
 fun KarsaCard(
     modifier: Modifier = Modifier,
@@ -87,15 +106,35 @@ fun KarsaCard(
     shape: Shape = CardShape,
     border: BorderStroke? = BorderStroke(1.dp, Ink.copy(alpha = 0.05f)),
     shadowed: Boolean = true,
+    pressScale: Boolean = true,
+    interactionSource: MutableInteractionSource = remember { MutableInteractionSource() },
     content: @Composable () -> Unit,
 ) {
     val m = modifier.let { if (shadowed) it.cardShadow(shape) else it }
     if (onClick != null) {
-        Surface(onClick = onClick, modifier = m, color = color, shape = shape, border = border, tonalElevation = 0.dp, shadowElevation = 0.dp, content = content)
+        val scale by pressScaleState(interactionSource, if (pressScale) 0.98f else 1f)
+        Surface(
+            onClick = onClick,
+            modifier = m.graphicsLayer { scaleX = scale; scaleY = scale },
+            interactionSource = interactionSource,
+            color = color,
+            shape = shape,
+            border = border,
+            tonalElevation = 0.dp,
+            shadowElevation = 0.dp,
+            content = content,
+        )
     } else {
-        Surface(modifier = m, color = color, shape = shape, border = border, tonalElevation = 0.dp, shadowElevation = 0.dp, content = content)
+        Surface(
+            modifier = m, color = color, shape = shape, border = border,
+            tonalElevation = 0.dp, shadowElevation = 0.dp, content = content,
+        )
     }
 }
+
+@Composable
+private fun pressScaleState(source: MutableInteractionSource, pressed: Float) =
+    pressScale(source, pressed)
 
 @Composable
 fun PaperPanel(modifier: Modifier = Modifier, content: @Composable ColumnScope.() -> Unit) {
@@ -104,22 +143,51 @@ fun PaperPanel(modifier: Modifier = Modifier, content: @Composable ColumnScope.(
     }
 }
 
-/** Panel kosong bergaris putus dengan ikon (EmptyState di replika web). */
+/**
+ * Panel kosong dengan ikon di dalam ubin oranye lembut. Muncul dengan fade + naik tipis
+ * supaya keadaan kosong tidak terasa "patah" saat muncul.
+ */
 @Composable
-fun EmptyPanel(title: String, description: String, modifier: Modifier = Modifier, action: @Composable (() -> Unit)? = null) {
+fun EmptyPanel(
+    title: String,
+    description: String,
+    modifier: Modifier = Modifier,
+    action: @Composable (() -> Unit)? = null,
+) {
+    val progress by rememberEnterProgress()
     Surface(
-        modifier = modifier.fillMaxWidth(),
-        color = Color.White.copy(alpha = 0.6f),
+        modifier = modifier
+            .fillMaxWidth()
+            .graphicsLayer {
+                alpha = progress
+                translationY = riseProgress(progress) * density
+            },
+        color = Color.White.copy(alpha = 0.62f),
         shape = CardShape,
         border = BorderStroke(1.dp, Paper3),
     ) {
-        Column(Modifier.padding(horizontal = 24.dp, vertical = 28.dp), horizontalAlignment = Alignment.CenterHorizontally) {
-            Box(Modifier.size(56.dp).clip(RoundedCornerShape(16.dp)).background(Brand100), contentAlignment = Alignment.Center) {
-                TruntumMark(28.dp, tile = null, ink = Brand600)
-            }
-            Text(title, Modifier.padding(top = 16.dp), style = MaterialTheme.typography.titleLarge)
-            Text(description, Modifier.padding(top = 6.dp), style = MaterialTheme.typography.bodyMedium, color = Ink2)
-            if (action != null) Box(Modifier.padding(top = 20.dp)) { action() }
+        Column(
+            Modifier.padding(horizontal = 24.dp, vertical = 26.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(6.dp),
+        ) {
+            Box(
+                Modifier.size(60.dp).clip(RoundedCornerShape(18.dp)).background(Brand100),
+                contentAlignment = Alignment.Center,
+            ) { TruntumMark(30.dp, tile = null, ink = Brand600) }
+            Text(
+                title,
+                Modifier.padding(top = 10.dp),
+                style = MaterialTheme.typography.titleLarge,
+                textAlign = TextAlign.Center,
+            )
+            Text(
+                description,
+                style = MaterialTheme.typography.bodyMedium,
+                color = Ink2,
+                textAlign = TextAlign.Center,
+            )
+            if (action != null) Box(Modifier.padding(top = 14.dp)) { action() }
         }
     }
 }
@@ -128,26 +196,69 @@ fun EmptyPanel(title: String, description: String, modifier: Modifier = Modifier
 
 @Composable
 fun Eyebrow(text: String, modifier: Modifier = Modifier, color: Color = Brand700) {
-    Text(text.uppercase(Indonesian), modifier, color = color, fontSize = 11.sp, fontWeight = FontWeight.Bold, letterSpacing = 1.7.sp)
+    Text(
+        text.uppercase(Indonesian),
+        modifier,
+        color = color,
+        style = EyebrowStyle,
+    )
 }
 
 @Composable
-fun PageHeading(title: String, subtitle: String, eyebrow: String? = null, color: Color = Ink, subtitleColor: Color = Ink2) {
-    Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-        if (eyebrow != null) Eyebrow(eyebrow, color = if (color == Ink) Brand700 else Brand300)
-        Text(title, style = MaterialTheme.typography.headlineLarge.copy(fontSize = 34.sp, lineHeight = 36.sp), color = color)
-        Text(subtitle, style = MaterialTheme.typography.bodyMedium, color = subtitleColor)
+fun PageHeading(
+    title: String,
+    subtitle: String,
+    eyebrow: String? = null,
+    color: Color = Ink,
+    subtitleColor: Color = Ink2,
+    trailing: @Composable (RowScope.() -> Unit)? = null,
+) {
+    val progress by rememberEnterProgress()
+    Row(
+        Modifier
+            .fillMaxWidth()
+            .graphicsLayer {
+                alpha = progress
+                translationY = riseProgress(progress) * density
+            },
+        verticalAlignment = Alignment.Bottom,
+        horizontalArrangement = Arrangement.spacedBy(12.dp),
+    ) {
+        Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+            if (eyebrow != null) Eyebrow(eyebrow, color = if (color == Ink) Brand700 else Brand300)
+            Text(title, style = MaterialTheme.typography.headlineLarge, color = color)
+            Text(subtitle, style = MaterialTheme.typography.bodyMedium, color = subtitleColor)
+        }
+        trailing?.invoke(this)
     }
 }
 
 @Composable
 fun SectionHeading(title: String, actionLabel: String? = null, action: (() -> Unit)? = null) {
-    Row(Modifier.fillMaxWidth().padding(top = 8.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-        Text(title, Modifier.weight(1f).padding(vertical = 8.dp), style = MaterialTheme.typography.titleLarge)
+    Row(
+        Modifier.fillMaxWidth().padding(top = 10.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+    ) {
+        Text(title, Modifier.weight(1f).padding(vertical = 6.dp), style = MaterialTheme.typography.titleLarge)
         if (actionLabel != null && action != null) {
-            TextButton(onClick = action, modifier = Modifier.heightIn(min = 40.dp), colors = ButtonDefaults.textButtonColors(contentColor = Brand600)) {
-                Text(actionLabel, fontWeight = FontWeight.Bold, fontSize = 13.sp)
-                Icon(Icons.Outlined.ChevronRight, contentDescription = null, Modifier.size(16.dp))
+            val interaction = remember { MutableInteractionSource() }
+            Row(
+                Modifier
+                    .clip(CircleShape)
+                    .clickable(
+                        interactionSource = interaction,
+                        indication = ripple(color = Brand500.copy(alpha = 0.14f), bounded = true),
+                        role = Role.Button,
+                        onClick = action,
+                    )
+                    .pressFeedback(interaction, KarsaMotion.TapScale)
+                    .padding(horizontal = 10.dp, vertical = 8.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(2.dp),
+            ) {
+                Text(actionLabel, color = Brand600, style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.Bold)
+                Icon(Icons.Outlined.ChevronRight, contentDescription = null, Modifier.size(16.dp), tint = Brand600)
             }
         }
     }
@@ -169,8 +280,18 @@ enum class BadgeTone(val bg: Color, val fg: Color) {
 
 @Composable
 fun Badge(text: String, tone: BadgeTone = BadgeTone.Brand, modifier: Modifier = Modifier) {
-    Surface(modifier = modifier, color = tone.bg, contentColor = tone.fg, shape = CircleShape) {
-        Text(text, Modifier.padding(horizontal = 10.dp, vertical = 4.dp), fontSize = 11.sp, fontWeight = FontWeight.Bold, letterSpacing = 0.3.sp, maxLines = 1)
+    val bg by animateColorAsState(tone.bg, tween(KarsaMotion.Quick, easing = KarsaMotion.Standard), label = "badgeBg")
+    val fg by animateColorAsState(tone.fg, tween(KarsaMotion.Quick, easing = KarsaMotion.Standard), label = "badgeFg")
+    Surface(modifier = modifier, color = bg, contentColor = fg, shape = CircleShape) {
+        Text(
+            text,
+            Modifier.padding(horizontal = 10.dp, vertical = 4.dp),
+            fontSize = 11.sp,
+            fontWeight = FontWeight.Bold,
+            letterSpacing = 0.3.sp,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+        )
     }
 }
 
@@ -192,25 +313,66 @@ fun RoomBadge(room: String, modifier: Modifier = Modifier, large: Boolean = fals
     }
 }
 
-/** Lingkaran centang untuk tugas (CheckCircle di replika web). */
+/** Lingkaran centang untuk tugas; ikon centang tumbuh dari 0 ke 1 saat dicentang. */
 @Composable
 fun CheckCircle(checked: Boolean, enabled: Boolean, onCheckedChange: (Boolean) -> Unit, modifier: Modifier = Modifier) {
+    val background by animateColorAsState(
+        if (checked) Brand500 else Color.White,
+        tween(KarsaMotion.Quick, easing = KarsaMotion.Standard),
+        label = "checkBg",
+    )
+    val borderColor by animateColorAsState(
+        if (checked) Brand500 else Paper3,
+        tween(KarsaMotion.Quick, easing = KarsaMotion.Standard),
+        label = "checkBorder",
+    )
+    val iconScale by animateFloatAsState(
+        if (checked) 1f else 0.4f,
+        tween(KarsaMotion.Quick, easing = KarsaMotion.Standard),
+        label = "checkIcon",
+    )
+    val iconAlpha by animateFloatAsState(
+        if (checked) 1f else 0f,
+        tween(KarsaMotion.Press, easing = KarsaMotion.Standard),
+        label = "checkAlpha",
+    )
+    val interaction = remember { MutableInteractionSource() }
     Box(
         modifier
             .size(28.dp)
+            .pressFeedback(interaction, KarsaMotion.TapScale)
             .clip(CircleShape)
-            .background(if (checked) Brand500 else Color.White)
-            .border(2.dp, if (checked) Brand500 else Paper3, CircleShape)
-            .toggleable(value = checked, enabled = enabled, role = Role.Checkbox, onValueChange = onCheckedChange),
+            .background(background)
+            .border(2.dp, borderColor, CircleShape)
+            .toggleable(
+                value = checked,
+                enabled = enabled,
+                role = Role.Checkbox,
+                interactionSource = interaction,
+                indication = ripple(color = Brand500.copy(alpha = 0.2f), bounded = true),
+                onValueChange = onCheckedChange,
+            ),
         contentAlignment = Alignment.Center,
     ) {
-        if (checked) Icon(Icons.Outlined.Check, contentDescription = null, tint = Color.White, modifier = Modifier.size(18.dp))
+        Icon(
+            Icons.Outlined.Check,
+            contentDescription = null,
+            tint = Color.White,
+            modifier = Modifier.size(18.dp).graphicsLayer {
+                scaleX = iconScale
+                scaleY = iconScale
+                alpha = iconAlpha
+            },
+        )
     }
 }
 
 // ───────── Field teks ─────────
 
-/** Kolom isian berlatar kertas (paper2) tanpa garis tepi, oranye saat fokus (TextField di replika web). */
+/**
+ * Kolom isian berlatar kertas (paper2) tanpa garis tepi; saat fokus latar memutih dan
+ * guratan oranye 2 dp muncul dengan transisi halus, mengikuti TextField di asset-karsa.
+ */
 @Composable
 fun KarsaTextField(
     value: String,
@@ -222,18 +384,48 @@ fun KarsaTextField(
     isError: Boolean = false,
     minLines: Int = 1,
 ) {
+    val interaction = remember { MutableInteractionSource() }
+    val focused by interaction.collectIsFocusedAsState()
+    val container by animateColorAsState(
+        when {
+            !enabled -> Paper2
+            isError -> Danger100.copy(alpha = 0.45f)
+            focused -> Color.White
+            else -> Paper2
+        },
+        tween(KarsaMotion.Quick, easing = KarsaMotion.Standard),
+        label = "fieldBg",
+    )
+    val borderColor by animateColorAsState(
+        when {
+            isError -> Danger500.copy(alpha = 0.65f)
+            focused -> Brand400
+            else -> Color.Transparent
+        },
+        tween(KarsaMotion.Quick, easing = KarsaMotion.Standard),
+        label = "fieldBorder",
+    )
     OutlinedTextField(
-        value = value, onValueChange = onValueChange, modifier = modifier, enabled = enabled, label = label,
-        singleLine = singleLine, isError = isError, minLines = if (singleLine) 1 else minLines,
+        value = value,
+        onValueChange = onValueChange,
+        modifier = modifier,
+        enabled = enabled,
+        label = label,
+        singleLine = singleLine,
+        isError = isError,
+        minLines = if (singleLine) 1 else minLines,
         shape = TileShape,
+        interactionSource = interaction,
+        textStyle = MaterialTheme.typography.bodyLarge.copy(color = Ink),
         colors = OutlinedTextFieldDefaults.colors(
             focusedTextColor = Ink, unfocusedTextColor = Ink, disabledTextColor = Muted,
-            focusedContainerColor = Color.White, unfocusedContainerColor = Paper2,
-            disabledContainerColor = Paper2, errorContainerColor = Danger100.copy(alpha = 0.5f),
-            focusedBorderColor = Brand400, unfocusedBorderColor = Color.Transparent,
-            disabledBorderColor = Color.Transparent, errorBorderColor = Danger500.copy(alpha = 0.6f),
+            focusedContainerColor = container, unfocusedContainerColor = container,
+            disabledContainerColor = Paper2, errorContainerColor = container,
+            focusedBorderColor = borderColor, unfocusedBorderColor = borderColor,
+            disabledBorderColor = Color.Transparent, errorBorderColor = borderColor,
             focusedLabelColor = Brand600, unfocusedLabelColor = Muted, errorLabelColor = Danger500,
             cursorColor = Brand500, errorCursorColor = Danger500,
+            focusedPlaceholderColor = Muted, unfocusedPlaceholderColor = Muted,
         ),
     )
 }
@@ -241,7 +433,51 @@ fun KarsaTextField(
 // ───────── Field tanggal & jam ─────────
 
 @Composable
-internal fun fieldButtonColors() = ButtonDefaults.outlinedButtonColors(containerColor = Paper2, contentColor = Ink, disabledContainerColor = Paper2, disabledContentColor = Muted)
+internal fun fieldButtonColors() = ButtonDefaults.outlinedButtonColors(
+    containerColor = Paper2, contentColor = Ink,
+    disabledContainerColor = Paper2, disabledContentColor = Muted,
+)
+
+/** Tombol field bergaya kertas: latar memutih + guratan oranye saat ditekan/difokus. */
+@Composable
+private fun FieldSurface(
+    enabled: Boolean,
+    modifier: Modifier = Modifier,
+    onClick: () -> Unit,
+    content: @Composable RowScope.() -> Unit,
+) {
+    val interaction = remember { MutableInteractionSource() }
+    val pressed = isPressed(interaction)
+    val container by animateColorAsState(
+        if (pressed) Color.White else Paper2,
+        tween(KarsaMotion.Quick, easing = KarsaMotion.Standard),
+        label = "fieldBtnBg",
+    )
+    val borderColor by animateColorAsState(
+        if (pressed) Brand300 else Color.Transparent,
+        tween(KarsaMotion.Quick, easing = KarsaMotion.Standard),
+        label = "fieldBtnBorder",
+    )
+    Row(
+        modifier
+            .fillMaxWidth()
+            .heightIn(min = 56.dp)
+            .clip(TileShape)
+            .background(container)
+            .border(2.dp, borderColor, TileShape)
+            .clickable(
+                interactionSource = interaction,
+                indication = ripple(color = Brand500.copy(alpha = 0.12f), bounded = true),
+                enabled = enabled,
+                role = Role.Button,
+                onClick = onClick,
+            )
+            .pressFeedback(interaction, 0.985f)
+            .padding(horizontal = 16.dp, vertical = 14.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        content = content,
+    )
+}
 
 @Composable
 fun DateField(
@@ -253,18 +489,16 @@ fun DateField(
     clearable: Boolean = true,
 ) {
     val context = LocalContext.current
-    Column {
-        OutlinedButton(
-            modifier = Modifier.fillMaxWidth().heightIn(min = 56.dp),
+    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+        val initial = epochDay?.let(LocalDate::ofEpochDay) ?: today
+        FieldSurface(
             enabled = enabled,
-            shape = TileShape,
-            colors = fieldButtonColors(),
-            border = BorderStroke(0.dp, Color.Transparent),
             onClick = {
-                val initial = epochDay?.let(LocalDate::ofEpochDay) ?: today
-                DatePickerDialog(context, { _, year, month, day ->
-                    onChange(LocalDate.of(year, month + 1, day).toEpochDay())
-                }, initial.year, initial.monthValue - 1, initial.dayOfMonth).apply {
+                DatePickerDialog(
+                    context,
+                    { _, year, month, day -> onChange(LocalDate.of(year, month + 1, day).toEpochDay()) },
+                    initial.year, initial.monthValue - 1, initial.dayOfMonth,
+                ).apply {
                     setTitle(label)
                     setButton(DatePickerDialog.BUTTON_POSITIVE, "Pilih", this)
                     setButton(DatePickerDialog.BUTTON_NEGATIVE, "Batal", this)
@@ -272,12 +506,20 @@ fun DateField(
             },
         ) {
             Icon(Icons.Outlined.CalendarMonth, contentDescription = null, tint = Brand600)
-            Text("$label: ${epochDay?.let(::dateLabel) ?: "Belum dipilih"}", Modifier.weight(1f).padding(start = 12.dp))
+            Text(
+                "$label: ${epochDay?.let(::dateLabel) ?: "Belum dipilih"}",
+                Modifier.weight(1f).padding(start = 12.dp),
+                style = MaterialTheme.typography.bodyLarge,
+                color = if (epochDay == null) Muted else Ink,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+            )
+            if (epochDay == null) {
+                Icon(Icons.Outlined.ArrowForwardIos, contentDescription = null, tint = Muted, modifier = Modifier.size(14.dp))
+            }
         }
         if (clearable && epochDay != null) {
-            TextButton(enabled = enabled, onClick = { onChange(null) }, colors = ButtonDefaults.textButtonColors(contentColor = Brand600)) {
-                Text("Hapus tanggal ${label.lowercase(Indonesian)}")
-            }
+            KarsaTextButton("Hapus tanggal ${label.lowercase(Indonesian)}") { onChange(null) }
         }
     }
 }
@@ -285,15 +527,14 @@ fun DateField(
 @Composable
 fun TimeField(label: String, minute: Int, enabled: Boolean, onChange: (Int) -> Unit) {
     val context = LocalContext.current
-    OutlinedButton(
-        modifier = Modifier.fillMaxWidth().heightIn(min = 56.dp),
+    FieldSurface(
         enabled = enabled,
-        shape = TileShape,
-        colors = fieldButtonColors(),
-        border = BorderStroke(0.dp, Color.Transparent),
         onClick = {
-            TimePickerDialog(context, { _, hour, selectedMinute -> onChange(hour * 60 + selectedMinute) },
-                minute / 60, minute % 60, true).apply {
+            TimePickerDialog(
+                context,
+                { _, hour, selectedMinute -> onChange(hour * 60 + selectedMinute) },
+                minute / 60, minute % 60, true,
+            ).apply {
                 setTitle(label)
                 setButton(TimePickerDialog.BUTTON_POSITIVE, "Pilih", this)
                 setButton(TimePickerDialog.BUTTON_NEGATIVE, "Batal", this)
@@ -301,13 +542,62 @@ fun TimeField(label: String, minute: Int, enabled: Boolean, onChange: (Int) -> U
         },
     ) {
         Icon(Icons.Outlined.Schedule, contentDescription = null, tint = Brand600)
-        Text("$label: ${minuteLabel(minute)}", Modifier.weight(1f).padding(start = 12.dp), style = TimeStyle.copy(fontSize = 16.sp, fontWeight = FontWeight.Bold))
+        Text(
+            label, Modifier.weight(1f).padding(start = 12.dp),
+            style = MaterialTheme.typography.bodyLarge, maxLines = 1,
+        )
+        Text(minuteLabel(minute), style = TimeStyle.copy(fontSize = 18.sp, fontWeight = FontWeight.Bold))
+    }
+}
+
+/** Tombol teks Karsa dengan umpan balik tekan dan warna brand (bukan abu-abu bawaan M3). */
+@Composable
+fun KarsaTextButton(
+    text: String,
+    modifier: Modifier = Modifier,
+    enabled: Boolean = true,
+    color: Color = Brand600,
+    fontWeight: FontWeight = FontWeight.Bold,
+    onClick: () -> Unit,
+) {
+    val interaction = remember { MutableInteractionSource() }
+    Box(
+        modifier
+            .clip(CircleShape)
+            .clickable(
+                interactionSource = interaction,
+                indication = ripple(color = color.copy(alpha = 0.14f), bounded = true),
+                enabled = enabled,
+                role = Role.Button,
+                onClick = onClick,
+            )
+            .pressFeedback(interaction, KarsaMotion.TapScale)
+            .padding(horizontal = 12.dp, vertical = 10.dp),
+    ) {
+        Text(
+            text,
+            color = if (enabled) color else Muted,
+            style = MaterialTheme.typography.labelLarge,
+            fontWeight = fontWeight,
+        )
     }
 }
 
 @Composable
 fun ValidationText(text: String) {
-    Text(text, style = MaterialTheme.typography.bodySmall.copy(fontWeight = FontWeight.SemiBold), color = MaterialTheme.colorScheme.error)
+    val progress by rememberEnterProgress(durationMillis = 220)
+    Row(
+        Modifier.graphicsLayer { alpha = progress; translationY = riseProgress(progress, 6f) * density },
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(6.dp),
+    ) {
+        Box(Modifier.size(6.dp).background(Danger500, CircleShape))
+        Text(
+            text,
+            style = MaterialTheme.typography.bodySmall.copy(fontWeight = FontWeight.SemiBold),
+            color = MaterialTheme.colorScheme.error,
+        )
+    }
 }
 
 /** Dialog konfirmasi hapus: kartu putih 28 dp, tombol bahaya merah (Dialog di replika web). */
@@ -315,17 +605,46 @@ fun ValidationText(text: String) {
 fun DeleteConfirmation(title: String, explanation: String, busy: Boolean, onDismiss: () -> Unit, onConfirm: () -> Unit) {
     AlertDialog(
         onDismissRequest = { if (!busy) onDismiss() },
-        title = { Text("Hapus $title?") },
-        text = { Text(explanation, color = Ink2) },
-        confirmButton = {
-            Button(
-                enabled = !busy, onClick = onConfirm,
-                colors = ButtonDefaults.buttonColors(containerColor = Danger500, contentColor = Color.White),
-            ) { Text(if (busy) "Menghapus…" else "Hapus") }
+        title = { Text("Hapus $title?", style = MaterialTheme.typography.titleLarge) },
+        text = { Text(explanation, color = Ink2, style = MaterialTheme.typography.bodyMedium) },
+        icon = {
+            Box(
+                Modifier.size(48.dp).clip(RoundedCornerShape(16.dp)).background(Danger100),
+                contentAlignment = Alignment.Center,
+            ) {
+                Icon(
+                    Icons.Outlined.DeleteOutline,
+                    contentDescription = null,
+                    tint = Danger500,
+                    modifier = Modifier.size(24.dp),
+                )
+            }
         },
-        dismissButton = { TextButton(enabled = !busy, onClick = onDismiss, colors = ButtonDefaults.textButtonColors(contentColor = Ink2)) { Text("Batal") } },
+        confirmButton = {
+            DangerButton(text = if (busy) "Menghapus…" else "Hapus", enabled = !busy, onClick = onConfirm)
+        },
+        dismissButton = {
+            KarsaTextButton("Batal", enabled = !busy, color = Ink2, onClick = onDismiss)
+        },
         containerColor = Color.White,
         shape = CardShape,
         tonalElevation = 0.dp,
     )
+}
+
+/**
+ * Ayunan kecil pada logo/ikon: dipakai beberapa tempat untuk memberi "nafas" pada elemen statis.
+ * Nilai awal 0f → dipakai bersama [graphicsLayer].
+ */
+@Composable
+fun rememberBreathe(enabled: Boolean = true): State<Float> {
+    val value = remember { Animatable(0f) }
+    LaunchedEffect(enabled) {
+        if (!enabled) return@LaunchedEffect
+        while (true) {
+            value.animateTo(1f, tween(2400, easing = KarsaMotion.Standard))
+            value.animateTo(0f, tween(2400, easing = KarsaMotion.Standard))
+        }
+    }
+    return value.asState()
 }

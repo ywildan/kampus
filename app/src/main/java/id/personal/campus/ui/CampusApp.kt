@@ -1,8 +1,16 @@
 package id.personal.campus.ui
 
+import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
+import androidx.compose.animation.scaleOut
+import androidx.compose.animation.slideInHorizontally
+import androidx.compose.animation.slideOutHorizontally
+import androidx.compose.animation.ExperimentalAnimationApi
+import androidx.compose.animation.plus
+import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -22,10 +30,8 @@ import androidx.compose.material.icons.outlined.CalendarMonth
 import androidx.compose.material.icons.outlined.Checklist
 import androidx.compose.material.icons.outlined.Settings
 import androidx.compose.material.icons.outlined.AutoAwesome
+import androidx.compose.material.icons.outlined.Refresh
 import androidx.compose.material.icons.outlined.Today
-import androidx.compose.material3.Button
-import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarDuration
 import androidx.compose.material3.SnackbarHost
@@ -82,13 +88,17 @@ fun CampusApp(model: CampusViewModel, chatModel: AgentChatViewModel) {
     }
     Box(Modifier.fillMaxSize()) {
         CampusAppContent(model, chatModel)
+        // Splash memudar sambil mengecil sedikit supaya konten di belakangnya terasa "terangkat",
+        // bukan tertutup lapisan yang hilang mendadak.
         AnimatedVisibility(
             visible = !minElapsed || (loaded.loading && loaded.data == null),
-            exit = fadeOut(tween(500)),
+            exit = fadeOut(tween(KarsaMotion.Long, easing = KarsaMotion.Exit)) +
+                scaleOut(tween(KarsaMotion.Long, easing = KarsaMotion.Exit), targetScale = 1.06f),
         ) { SplashScreen() }
     }
 }
 
+@OptIn(ExperimentalAnimationApi::class)
 @Composable
 private fun CampusAppContent(model: CampusViewModel, chatModel: AgentChatViewModel) {
     val state by model.state.collectAsStateWithLifecycle()
@@ -156,21 +166,44 @@ private fun CampusAppContent(model: CampusViewModel, chatModel: AgentChatViewMod
                     verticalArrangement = Arrangement.spacedBy(16.dp, Alignment.CenterVertically),
                 ) {
                     if (state.loading) {
-                        CircularProgressIndicator()
-                        Text("Membuka ruang kuliah Anda…")
+                        LoadingRing(size = 28.dp)
+                        Text("Membuka ruang kuliah Anda…", color = Ink2)
                     } else {
-                        Text(state.loadError ?: "Data belum tersedia.", textAlign = TextAlign.Center)
-                        Button(onClick = model::load) { Text("Coba lagi") }
+                        Text(state.loadError ?: "Data belum tersedia.", textAlign = TextAlign.Center, color = Ink2)
+                        KarsaButton("Coba lagi", onClick = model::load, icon = Icons.Outlined.Refresh)
                     }
                 }
             } else {
                 if (state.loadError != null) {
-                    Button(onClick = model::load, modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp)) {
-                        Text("Pembaruan data terhenti · Coba lagi")
-                    }
+                    KarsaButton(
+                        "Pembaruan data terhenti · Coba lagi",
+                        onClick = model::load,
+                        modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp),
+                        variant = KarsaButtonVariant.Soft,
+                    )
                 }
-                tabStates.SaveableStateProvider(tab) {
-                    when (tab) {
+                // Perpindahan tab: isi layar bergeser sedikit ke arah tab tujuan sambil menyilang
+                // memudar, dan arah geser mengikuti urutan tab (kiri → kanan) agar ruang terasa
+                // punya satu sumbu, bukan lima layar yang saling menimpa.
+                AnimatedContent(
+                    targetState = tab,
+                    transitionSpec = {
+                        val forward = targetState > initialState
+                        val enter = slideInHorizontally(
+                            animationSpec = tween(KarsaMotion.Medium, easing = KarsaMotion.Emphasized),
+                            initialOffsetX = { width -> (width / 14) * if (forward) 1 else -1 },
+                        ) + fadeIn(tween(KarsaMotion.Medium, easing = KarsaMotion.Standard))
+                        val exit = slideOutHorizontally(
+                            animationSpec = tween(KarsaMotion.Quick + 60, easing = KarsaMotion.Exit),
+                            targetOffsetX = { width -> -(width / 20) * if (forward) 1 else -1 },
+                        ) + fadeOut(tween(KarsaMotion.Quick, easing = KarsaMotion.Exit))
+                        enter togetherWith exit
+                    },
+                    label = "tabContent",
+                    contentKey = { it },
+                ) { current ->
+                    tabStates.SaveableStateProvider(current) {
+                    when (current) {
                         0 -> HomeScreen(
                             data, checkNotNull(state.schedule), state.saving,
                             onSettings = { tab = 4 }, onCourse = { detailId = it },
@@ -206,6 +239,7 @@ private fun CampusAppContent(model: CampusViewModel, chatModel: AgentChatViewMod
                             agent = agentState,
                             onSaveAgent = { config, newKey, clear -> model.saveAgent(config, newKey, clear) },
                             onCheckAgent = { config, newKey -> model.checkAgent(config, newKey) })
+                    }
                     }
                 }
             }

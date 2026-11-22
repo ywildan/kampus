@@ -1,0 +1,875 @@
+<!doctype html>
+<html lang="id">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Kampus · Pratinjau Poles UI (Karsa)</title>
+<style>
+  @import url("https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,200..800&family=Plus+Jakarta+Sans:wght@200..800&display=swap");
+
+  :root {
+    --paper: #fbf5ec;
+    --paper2: #f5ece0;
+    --paper3: #ebdfcd;
+    --line: #ebe0d1;
+    --ink: #26180f;
+    --ink2: #5a483b;
+    --muted: #8b7b6d;
+    --espresso: #2a1a10;
+    --espresso2: #3b261a;
+    --brand-50: #fff5ec;
+    --brand-100: #ffe6d0;
+    --brand-200: #ffcb9c;
+    --brand-300: #ffa762;
+    --brand-400: #f88a2e;
+    --brand-500: #e36b0f;
+    --brand-600: #c75a08;
+    --brand-700: #8f4208;
+    --brand-800: #5f2c06;
+    --butter-100: #fdf0c4;
+    --butter-700: #7a5a00;
+    --leaf-100: #dcf2e4;
+    --leaf-600: #17623d;
+    --danger-100: #fbe2df;
+    --danger-500: #c1352b;
+    --tide-100: #dcebf4;
+    --tide-600: #2a6385;
+    --plum-100: #f1dceb;
+    --plum-600: #7a3e6b;
+
+    --press: 130ms;
+    --quick: 200ms;
+    --medium: 320ms;
+    --long: 440ms;
+    --standard: cubic-bezier(.2, .9, .2, 1);
+    --emphasized: cubic-bezier(.05, .7, .1, 1);
+    --exit: cubic-bezier(.4, 0, 1, 1);
+
+    --font-display: "Bricolage Grotesque", system-ui, sans-serif;
+    --font-sans: "Plus Jakarta Sans", system-ui, sans-serif;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: var(--paper);
+    color: var(--ink);
+    font-family: var(--font-sans);
+    -webkit-font-smoothing: antialiased;
+    padding: 28px 18px 64px;
+  }
+  h1, h2, h3, .display { font-family: var(--font-display); letter-spacing: -0.02em; margin: 0; }
+  h1 { font-size: 34px; font-weight: 800; line-height: 1.05; }
+  h2 { font-size: 19px; font-weight: 700; }
+  h3 { font-size: 16px; font-weight: 700; letter-spacing: -0.1px; }
+  p { margin: 0; }
+  .lead { color: var(--ink2); font-size: 14px; line-height: 1.6; max-width: 760px; margin-top: 8px; }
+  .wrap { max-width: 1120px; margin: 0 auto; }
+  .eyebrow {
+    font-size: 11px; font-weight: 700; letter-spacing: 0.16em; text-transform: uppercase;
+    color: var(--brand-700);
+  }
+  .muted { color: var(--muted); }
+  .small { font-size: 12px; line-height: 1.45; }
+  .row { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
+  .grid { display: grid; gap: 18px; }
+  @media (min-width: 900px) { .grid.two { grid-template-columns: 1fr 1fr; } }
+
+  .card {
+    background: #fff;
+    border: 1px solid rgba(38, 24, 15, 0.05);
+    border-radius: 28px;
+    box-shadow: 0 10px 20px -6px rgba(42, 26, 16, 0.14), 0 1px 3px rgba(42, 26, 16, 0.06);
+    padding: 20px;
+  }
+  .panel { background: var(--paper2); border-radius: 24px; padding: 18px; }
+  .spec { font-size: 12px; color: var(--muted); margin-top: 2px; }
+
+  /* ── Tombol Karsa ── */
+  .btn {
+    display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+    height: 48px; padding: 0 20px; border-radius: 16px; border: 1px solid transparent;
+    font-family: var(--font-sans); font-size: 15px; font-weight: 700; cursor: pointer;
+    background: var(--brand-500); color: #fff; white-space: nowrap; user-select: none;
+    box-shadow: 0 10px 22px -6px rgba(227, 107, 15, 0.62), 0 2px 6px rgba(227, 107, 15, 0.3);
+    transition:
+      background-color var(--quick) var(--standard),
+      color var(--quick) var(--standard),
+      transform var(--press) var(--standard),
+      box-shadow var(--quick) var(--standard);
+  }
+  .btn:hover { background: var(--brand-600); }
+  .btn:active { transform: scale(0.96); }
+  .btn.sm { height: 36px; padding: 0 14px; font-size: 13px; border-radius: 999px; box-shadow: none; }
+  .btn.lg { height: 56px; padding: 0 24px; font-size: 16px; border-radius: 20px; }
+  .btn.dark { background: var(--espresso); box-shadow: none; }
+  .btn.dark:hover { background: var(--espresso2); }
+  .btn.soft { background: var(--brand-100); color: var(--brand-700); box-shadow: none; }
+  .btn.soft:hover { background: var(--brand-200); }
+  .btn.outline { background: #fff; color: var(--ink); border-color: var(--line); box-shadow: none; }
+  .btn.outline:hover { background: var(--paper2); }
+  .btn.ghost { background: transparent; color: var(--ink2); box-shadow: none; }
+  .btn.ghost:hover { background: var(--paper2); }
+  .btn.danger { background: var(--danger-500); box-shadow: none; }
+  .btn.dangersoft { background: var(--danger-100); color: var(--danger-500); box-shadow: none; }
+  .btn[disabled] { background: var(--paper3); color: var(--muted); box-shadow: none; cursor: not-allowed; transform: none; }
+  .btn[disabled].outline { background: transparent; border-color: var(--paper3); }
+  .btn .spinner {
+    width: 16px; height: 16px; border-radius: 50%;
+    border: 2.5px solid currentColor; border-right-color: transparent;
+    animation: spin 0.95s linear infinite;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  .iconbtn {
+    display: inline-flex; align-items: center; justify-content: center;
+    width: 40px; height: 40px; border-radius: 999px; border: 1px solid var(--line);
+    background: #fff; color: var(--ink); cursor: pointer;
+    transition: background-color var(--quick) var(--standard), transform var(--press) var(--standard);
+  }
+  .iconbtn:hover { background: var(--paper2); }
+  .iconbtn:active { transform: scale(0.92); }
+  .iconbtn.ghost { border-color: transparent; background: transparent; }
+  .iconbtn.dark { background: var(--espresso); border-color: transparent; color: #fff; }
+  .iconbtn.brand { background: var(--brand-500); border-color: transparent; color: #fff; }
+
+  /* ── Chip ── */
+  .chip {
+    display: inline-flex; align-items: center; gap: 6px; height: 36px; padding: 0 14px;
+    border-radius: 999px; border: 1px solid var(--line); background: #fff; color: var(--ink2);
+    font-size: 13px; font-weight: 600; cursor: pointer;
+    transition: background-color var(--quick) var(--standard), color var(--quick) var(--standard),
+                border-color var(--quick) var(--standard), transform var(--press) var(--standard);
+  }
+  .chip:active { transform: scale(0.92); }
+  .chip.on { background: var(--espresso); border-color: var(--espresso); color: #fff; }
+  .chip .tick { width: 0; opacity: 0; transform: scale(0.3); transition: all var(--quick) var(--standard); }
+  .chip.on .tick { width: 14px; opacity: 1; transform: scale(1); }
+
+  /* ── Badge ── */
+  .badge {
+    display: inline-flex; align-items: center; gap: 5px; padding: 4px 10px; border-radius: 999px;
+    font-size: 11px; font-weight: 700; letter-spacing: 0.3px;
+    transition: background-color var(--quick) var(--standard), color var(--quick) var(--standard);
+  }
+  .badge.brand { background: var(--brand-100); color: var(--brand-700); }
+  .badge.dark { background: var(--espresso); color: #fff; }
+  .badge.leaf { background: var(--leaf-100); color: var(--leaf-600); }
+  .badge.butter { background: var(--butter-100); color: var(--butter-700); }
+  .badge.neutral { background: var(--paper2); color: var(--ink2); }
+  .badge.danger { background: var(--danger-100); color: var(--danger-500); }
+  .badge.tide { background: var(--tide-100); color: var(--tide-600); }
+  .badge.plum { background: var(--plum-100); color: var(--plum-600); }
+
+  /* ── Field ── */
+  .field {
+    width: 100%; height: 52px; border-radius: 16px; border: 2px solid transparent;
+    background: var(--paper2); color: var(--ink); padding: 0 16px;
+    font-family: var(--font-sans); font-size: 15px; outline: none;
+    transition: background-color var(--quick) var(--standard), border-color var(--quick) var(--standard),
+                box-shadow var(--quick) var(--standard);
+  }
+  .field::placeholder { color: var(--muted); }
+  .field:focus { background: #fff; border-color: var(--brand-400); }
+  .fieldwrap { position: relative; }
+  .fieldwrap .chev {
+    position: absolute; right: 16px; top: 50%; transform: translateY(-50%);
+    color: var(--muted); transition: transform var(--quick) var(--standard);
+  }
+  .fieldwrap.open .chev { transform: translateY(-50%) rotate(180deg); }
+  .selectfield {
+    display: flex; align-items: center; justify-content: space-between; width: 100%;
+    height: 56px; padding: 0 16px; border-radius: 16px; border: 2px solid transparent;
+    background: var(--paper2); color: var(--ink); font-size: 15px; cursor: pointer;
+    transition: background-color var(--quick) var(--standard), border-color var(--quick) var(--standard);
+  }
+  .selectfield:hover { background: #fff; border-color: var(--brand-300); }
+
+  /* ── Switch ── */
+  .switch {
+    position: relative; width: 48px; height: 28px; border-radius: 999px; background: var(--paper3);
+    cursor: pointer; border: none; transition: background-color var(--quick) var(--standard);
+  }
+  .switch span {
+    position: absolute; top: 4px; left: 4px; width: 20px; height: 20px; border-radius: 50%;
+    background: #fff; box-shadow: 0 1px 3px rgba(42, 26, 16, 0.25);
+    transition: left var(--quick) var(--standard), transform var(--press) var(--standard);
+  }
+  .switch.on { background: var(--brand-500); }
+  .switch.on span { left: 24px; }
+
+  /* ── Checkbox ── */
+  .check {
+    width: 28px; height: 28px; border-radius: 999px; border: 2px solid var(--paper3);
+    background: #fff; cursor: pointer; display: grid; place-items: center; color: #fff;
+    transition: background-color var(--quick) var(--standard), border-color var(--quick) var(--standard),
+                transform var(--press) var(--standard);
+  }
+  .check:active { transform: scale(0.92); }
+  .check svg { opacity: 0; transform: scale(0.4); transition: all var(--quick) var(--standard); }
+  .check.on { background: var(--brand-500); border-color: var(--brand-500); }
+  .check.on svg { opacity: 1; transform: scale(1); }
+
+  /* ── Dock ── */
+  .dock-wrap { position: relative; padding: 10px 6px 0; }
+  .dock {
+    position: relative; display: flex; align-items: flex-end; justify-content: space-between;
+    height: 82px; padding: 0 10px 10px; border-radius: 41px;
+    background: linear-gradient(180deg, var(--espresso2), var(--espresso) 55%, var(--espresso));
+    border: 1px solid rgba(255, 255, 255, 0.06);
+    box-shadow: 0 22px 40px -10px rgba(42, 26, 16, 0.5), 0 4px 12px rgba(42, 26, 16, 0.16);
+  }
+  .tab {
+    flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: flex-end;
+    gap: 4px; border: none; background: none; cursor: pointer; padding: 6px 0 0;
+    font-family: var(--font-sans);
+  }
+  .tab .icon-slot { position: relative; width: 56px; height: 36px; display: grid; place-items: center; }
+  .tab .pill {
+    position: absolute; inset: 0 auto 0 50%; width: 30px; height: 36px; border-radius: 18px;
+    background: var(--brand-500); transform: translateX(-50%);
+    opacity: 0; transition: width 380ms cubic-bezier(.34, 1.4, .64, 1), opacity var(--quick) var(--standard),
+                box-shadow var(--quick) var(--standard);
+  }
+  .tab.on .pill { width: 56px; opacity: 1; box-shadow: 0 8px 18px -6px rgba(227, 107, 15, 0.7); }
+  .tab svg {
+    position: relative; color: rgba(255, 255, 255, 0.52);
+    transition: color var(--quick) var(--standard), transform var(--quick) var(--standard);
+  }
+  .tab.on svg { color: #fff; transform: translateY(-1px) scale(1.06); }
+  .tab .lbl {
+    font-size: 10.5px; font-weight: 600; color: rgba(255, 255, 255, 0.52);
+    transition: color var(--quick) var(--standard); max-width: 100%;
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  }
+  .tab.on .lbl { color: #fff; }
+  .tab.center .glow {
+    position: absolute; left: 50%; top: 50%; width: 92px; height: 92px; border-radius: 50%;
+    transform: translate(-50%, -50%);
+    background: radial-gradient(closest-side, rgba(227, 107, 15, 0.42), transparent);
+    opacity: 0.66; transition: opacity var(--medium) var(--standard);
+  }
+  .tab.center .orb {
+    position: relative; width: 60px; height: 60px; border-radius: 50%;
+    background: var(--brand-500); border: 4px solid var(--paper); display: grid; place-items: center;
+    color: #fff;
+    box-shadow: 0 12px 26px -8px rgba(227, 107, 15, 0.7), 0 2px 6px rgba(227, 107, 15, 0.4);
+    transition: background-color var(--quick) var(--standard), transform var(--press) var(--standard);
+  }
+  .tab.center.on .orb { background: var(--brand-400); }
+  .tab.center svg { color: #fff; transition: transform var(--quick) var(--standard); }
+  .tab.center.on svg { transform: rotate(8deg) scale(1.06); }
+
+  /* ── Phone / layar ── */
+  .phone {
+    width: 320px; max-width: 100%; border-radius: 32px; background: var(--paper);
+    border: 1px solid var(--line); padding: 16px 14px 0; overflow: hidden;
+    box-shadow: 0 18px 40px -18px rgba(42, 26, 16, 0.3);
+  }
+  .screen { position: relative; min-height: 430px; overflow: hidden; }
+  .screen > .page {
+    position: absolute; inset: 0; padding-bottom: 12px;
+    opacity: 0; transform: translateX(22px); pointer-events: none;
+    transition: opacity var(--medium) var(--standard), transform var(--medium) var(--emphasized);
+  }
+  .screen > .page.active { opacity: 1; transform: none; pointer-events: auto; }
+  .screen > .page.leaving { opacity: 0; transform: translateX(-14px); transition-duration: 260ms; transition-timing-function: var(--exit); }
+
+  .hero-card {
+    position: relative; overflow: hidden; border-radius: 28px; background: var(--espresso); color: #fff;
+    padding: 18px; box-shadow: 0 22px 40px -10px rgba(42, 26, 16, 0.4);
+    transition: transform var(--press) var(--standard);
+  }
+  .hero-card:active { transform: scale(0.985); }
+  .hero-card .batik {
+    position: absolute; inset: 0; opacity: 0.55;
+    background-image: url("data:image/svg+xml;utf8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='44' height='44'%3E%3Cg fill='none' stroke='%23ffffff' stroke-opacity='.16' stroke-width='1.2'%3E%3Cpolygon points='22,12 26.9,17.1 33.5,17.1 28.6,22.2 30.3,28.9 22,24.5 13.7,28.9 15.4,22.2 10.5,17.1 17.1,17.1'/%3E%3C/g%3E%3Cg fill='%23ffffff' fill-opacity='.18'%3E%3Ccircle cx='11' cy='11' r='1.1'/%3E%3Ccircle cx='33' cy='11' r='1.1'/%3E%3Ccircle cx='11' cy='33' r='1.1'/%3E%3Ccircle cx='33' cy='33' r='1.1'/%3E%3C/g%3E%3C/svg%3E");
+    background-size: 44px 44px;
+  }
+  .hero-card .glow {
+    position: absolute; right: -48px; top: -48px; width: 176px; height: 176px; border-radius: 50%;
+    background: radial-gradient(closest-side, rgba(227, 107, 15, 0.45), transparent);
+  }
+  .hero-time { font-family: var(--font-sans); font-weight: 800; font-size: 34px; letter-spacing: -0.8px; line-height: 1; font-variant-numeric: tabular-nums; }
+  .room {
+    display: inline-block; padding: 10px 16px; border-radius: 20px; background: var(--brand-500);
+    font-weight: 800; font-size: 24px; letter-spacing: -0.2px; font-variant-numeric: tabular-nums;
+  }
+  .progress { margin-top: 14px; height: 6px; border-radius: 999px; background: rgba(255, 255, 255, 0.15); overflow: hidden; }
+  .progress i {
+    display: block; height: 100%; border-radius: 999px; background: var(--brand-400); width: 62%;
+    transition: width 900ms var(--standard);
+  }
+
+  .listrow {
+    display: flex; align-items: center; gap: 12px; padding: 14px; border-radius: 20px;
+    background: #fff; border: 1px solid var(--line);
+    transition: background-color var(--quick) var(--standard), transform var(--press) var(--standard),
+                border-color var(--quick) var(--standard);
+    cursor: pointer;
+  }
+  .listrow:hover { background: var(--paper2); }
+  .listrow:active { transform: scale(0.985); }
+  .tile {
+    width: 44px; height: 44px; border-radius: 14px; display: grid; place-items: center; flex: none;
+    transition: background-color var(--quick) var(--standard);
+  }
+  .chev-ind { color: var(--muted); transition: transform var(--quick) var(--standard), color var(--quick) var(--standard); }
+  .listrow:hover .chev-ind { transform: translateX(3px); color: var(--brand-600); }
+
+  .settings-menu .listrow + .listrow { margin-top: 10px; }
+
+  /* stagger rise */
+  .rise { animation: rise 0.5s var(--emphasized) both; }
+  .rise.d1 { animation-delay: 60ms; }
+  .rise.d2 { animation-delay: 110ms; }
+  .rise.d3 { animation-delay: 160ms; }
+  @keyframes rise {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: none; }
+  }
+
+  .toast {
+    position: fixed; left: 50%; bottom: 22px; transform: translate(-50%, 16px) scale(0.96);
+    background: var(--espresso); color: #fff; border-radius: 999px; padding: 12px 20px;
+    font-size: 13.5px; font-weight: 600; display: flex; align-items: center; gap: 8px;
+    box-shadow: 0 22px 40px -10px rgba(42, 26, 16, 0.5), 0 4px 12px rgba(42, 26, 16, 0.16);
+    opacity: 0; pointer-events: none; z-index: 50;
+    transition: opacity 280ms var(--standard), transform 280ms var(--emphasized);
+  }
+  .toast.show { opacity: 1; transform: translate(-50%, 0) scale(1); }
+
+  .label-grid { display: grid; grid-template-columns: 96px 1fr; gap: 10px 12px; align-items: center; }
+  .label-grid .k { font-size: 11px; font-weight: 600; color: var(--muted); }
+  section.block { margin-top: 40px; }
+  section.block > header { margin-bottom: 16px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="eyebrow">Kampus · pratinjau poles UI</div>
+  <h1 style="margin-top: 6px">Gerak, tombol, dan navigasi baru</h1>
+  <p class="lead">
+    Simulasi langsung dari perubahan di aplikasi Compose: keluarga tombol Karsa (Sm 36 · Md 48 · Lg 56),
+    ripple oranye, pil Dock yang meluncur dengan pegas, perpindahan tab yang bergeser + memudar,
+    field yang menyala saat fokus, serta tipografi Bricolage Grotesque dan Plus Jakarta Sans yang
+    sekarang benar-benar dipakai aplikasi. Semua animasi di halaman ini memakai durasi dan kurva
+    yang sama dengan <code>ui/Motion.kt</code>.
+  </p>
+
+  <!-- Tombol -->
+  <section class="block">
+    <header>
+      <div class="eyebrow">01 · KarsaButton</div>
+      <h2>Varian & ukuran</h2>
+      <div class="spec">Tekan untuk melihat skala 0,96 + ripple oranye + getaran (di perangkat).</div>
+    </header>
+    <div class="grid two">
+      <div class="card">
+        <div class="label-grid">
+          <span class="k">primary</span>
+          <span class="row">
+            <button class="btn sm">Simpan</button>
+            <button class="btn">Simpan</button>
+            <button class="btn lg">Simpan</button>
+          </span>
+          <span class="k">dark</span>
+          <span class="row">
+            <button class="btn sm dark">Simpan</button>
+            <button class="btn dark">Simpan</button>
+          </span>
+          <span class="k">soft</span>
+          <span class="row">
+            <button class="btn sm soft">Simpan</button>
+            <button class="btn soft">Simpan</button>
+          </span>
+          <span class="k">outline</span>
+          <span class="row">
+            <button class="btn sm outline">Simpan</button>
+            <button class="btn outline">Simpan</button>
+          </span>
+          <span class="k">ghost</span>
+          <span class="row">
+            <button class="btn sm ghost">Simpan</button>
+            <button class="btn ghost">Simpan</button>
+          </span>
+          <span class="k">danger</span>
+          <span class="row">
+            <button class="btn sm danger">Hapus</button>
+            <button class="btn danger">Hapus</button>
+            <button class="btn dangersoft">Batalkan</button>
+          </span>
+          <span class="k">status</span>
+          <span class="row">
+            <button class="btn" disabled>Nonaktif</button>
+            <button class="btn outline" disabled>Outline</button>
+            <button class="btn" id="loadingBtn"><span class="spinner"></span>Memuat</button>
+          </span>
+          <span class="k">ikon bulat</span>
+          <span class="row">
+            <button class="iconbtn" title="Notifikasi">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 8a6 6 0 1 1 12 0c0 7 3 7 3 9H3c0-2 3-2 3-9"/><path d="M10.3 21a2 2 0 0 0 3.4 0"/></svg>
+            </button>
+            <button class="iconbtn ghost" title="Hapus">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M3 6h18M8 6V4h8v2M6 6l1 14h10l1-14"/></svg>
+            </button>
+            <button class="iconbtn dark" title="Tulis">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 20h9M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>
+            </button>
+            <button class="iconbtn brand" title="Asisten">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 3v4M12 17v4M3 12h4M17 12h4M6 6l2.5 2.5M15.5 15.5 18 18M18 6l-2.5 2.5M8.5 15.5 6 18"/></svg>
+            </button>
+          </span>
+        </div>
+      </div>
+
+      <div class="card">
+        <h3 style="margin-bottom: 4px">Chip, badge, switch, centang</h3>
+        <div class="spec" style="margin-bottom: 16px">Warna dan bentuk beranimasi 200 ms; centang menyusut masuk.</div>
+        <div class="row" style="margin-bottom: 16px" id="chips">
+          <button class="chip on" data-chip>
+            <svg class="tick" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"><path d="M20 6 9 17l-5-5"/></svg>
+            Belum selesai
+          </button>
+          <button class="chip" data-chip>
+            <svg class="tick" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"><path d="M20 6 9 17l-5-5"/></svg>
+            Selesai
+          </button>
+          <button class="chip" data-chip>
+            <svg class="tick" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"><path d="M20 6 9 17l-5-5"/></svg>
+            Semua
+          </button>
+        </div>
+        <div class="row" style="margin-bottom: 18px">
+          <span class="badge brand">BRAND</span>
+          <span class="badge dark">DARK</span>
+          <span class="badge leaf">TERKONFIRMASI</span>
+          <span class="badge butter">PRATINJAU</span>
+          <span class="badge neutral">WIB</span>
+          <span class="badge danger">LEWAT</span>
+          <span class="badge tide">TIDE</span>
+          <span class="badge plum">PLUM</span>
+        </div>
+        <div class="row" style="gap: 16px; margin-bottom: 18px">
+          <div class="row" style="gap: 10px">
+            <button class="switch on" id="sw1" aria-label="toggle"><span></span></button>
+            <span class="small" style="color: var(--ink2); font-weight: 600">Pengingat</span>
+          </div>
+          <div class="row" style="gap: 12px">
+            <button class="check on" id="ck1" aria-label="selesai">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"><path d="M20 6 9 17l-5-5"/></svg>
+            </button>
+            <button class="check" id="ck2" aria-label="belum">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"><path d="M20 6 9 17l-5-5"/></svg>
+            </button>
+          </div>
+        </div>
+        <div style="margin-bottom: 10px"><span class="small muted">Field & pilih</span></div>
+        <input class="field" placeholder="Nama semester" style="margin-bottom: 10px" />
+        <div class="fieldwrap" id="selectWrap">
+          <button class="selectfield" id="selectField">
+            <span>Hari: Senin</span>
+            <svg class="chev" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="m6 9 6 6 6-6"/></svg>
+          </button>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Dock + navigasi -->
+  <section class="block">
+    <header>
+      <div class="eyebrow">02 · Navigasi</div>
+      <h2>Dock & perpindahan tab</h2>
+      <div class="spec">Ketuk tab: pil oranye mekar 30 → 56 dp dengan pegas; isi layar bergeser + memudar.</div>
+    </header>
+    <div class="grid two">
+      <div class="card" style="display: flex; justify-content: center">
+        <div class="phone">
+          <div class="screen" id="screen">
+            <div class="page active" data-page="0">
+              <div class="rise">
+                <div class="row" style="justify-content: space-between; margin-bottom: 14px">
+                  <div class="row" style="gap: 8px">
+                    <span style="width:36px;height:36px;border-radius:12px;background:var(--brand-500);display:grid;place-items:center;color:#fff">
+                      <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2l1.6 4.2L18 8l-4.4 1.8L12 14l-1.6-4.2L6 8l4.4-1.8L12 2zM12 16l1 2.6 2.6 1-2.6 1-1 2.6-1-2.6-2.6-1 2.6-1L12 16z"/></svg>
+                    </span>
+                    <strong class="display" style="font-size: 20px">Kampus</strong>
+                  </div>
+                  <span class="badge neutral">WIB</span>
+                </div>
+                <div class="eyebrow" style="margin-bottom: 6px">Sabtu, 22 November 2026</div>
+                <h2 class="display" style="font-size: 30px; line-height: 1.05">Selamat sore</h2>
+                <p class="small muted" style="margin: 6px 0 14px">Semester Ganjil · <strong style="color: var(--ink)">17:48</strong>:12 WIB</p>
+              </div>
+              <div class="hero-card rise d1">
+                <div class="batik"></div>
+                <div class="glow"></div>
+                <div style="position: relative">
+                  <div class="row" style="justify-content: space-between; margin-bottom: 14px">
+                    <span class="row" style="gap: 8px">
+                      <i style="width:10px;height:10px;border-radius:50%;background:var(--brand-400);display:block"></i>
+                      <span style="font-size:11px;font-weight:700;letter-spacing:0.16em;color:var(--brand-300)">BERLANGSUNG</span>
+                    </span>
+                    <span class="small" style="color: rgba(255,255,255,.55); font-weight: 600">Sisa 42 mnt</span>
+                  </div>
+                  <h3 class="display" style="font-size: 20px; color: #fff">Basis Data Lanjut</h3>
+                  <p class="small" style="color: rgba(255,255,255,.6); margin-top: 4px">Sabtu, 22 November 2026 · Kelas SI-4B</p>
+                  <div class="row" style="justify-content: space-between; align-items: flex-end; margin-top: 16px">
+                    <div>
+                      <div class="hero-time">15:30<span style="color: rgba(255,255,255,.45)">–</span>17:10</div>
+                      <div style="font-size: 10.5px; font-weight: 700; letter-spacing: .13em; color: rgba(255,255,255,.55); margin-top: 8px">WIB · 100 MNT</div>
+                    </div>
+                    <div style="text-align: right">
+                      <div style="font-size: 10.5px; font-weight: 700; letter-spacing: .15em; color: rgba(255,255,255,.55); margin-bottom: 6px">RUANG</div>
+                      <span class="room">R.304</span>
+                    </div>
+                  </div>
+                  <div class="progress"><i></i></div>
+                </div>
+              </div>
+            </div>
+
+            <div class="page" data-page="1">
+              <div class="rise">
+                <div class="eyebrow">Minggu ini</div>
+                <h2 class="display" style="font-size: 30px; margin: 6px 0 6px">Jadwal kuliah</h2>
+                <p class="small muted" style="margin-bottom: 14px">Satu minggu, tertata. Semua jam dalam WIB.</p>
+                <button class="btn lg" style="width: 100%; margin-bottom: 12px">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>
+                  Tambah mata kuliah
+                </button>
+                <div class="row" style="margin-bottom: 12px">
+                  <span class="badge leaf">2 aktif</span>
+                  <span class="badge neutral">0 nonaktif</span>
+                </div>
+              </div>
+              <div class="listrow rise d1">
+                <div style="flex: 1">
+                  <div class="hero-time" style="font-size: 22px">15:30–17:10</div>
+                  <strong class="small">Basis Data Lanjut</strong>
+                  <div class="small muted">Kelas SI-4B</div>
+                </div>
+                <span class="badge dark" style="border-radius: 14px; padding: 6px 12px; font-size: 15px">R.304</span>
+              </div>
+              <div class="listrow rise d2" style="margin-top: 10px">
+                <div style="flex: 1">
+                  <div class="hero-time" style="font-size: 22px">08:00–09:40</div>
+                  <strong class="small">Interaksi Manusia &amp; Komputer</strong>
+                  <div class="small muted">Kelas SI-4B</div>
+                </div>
+                <span class="badge dark" style="border-radius: 14px; padding: 6px 12px; font-size: 15px">LAB-2</span>
+              </div>
+            </div>
+
+            <div class="page" data-page="2">
+              <div class="rise">
+                <div class="eyebrow">Asisten AI</div>
+                <h2 class="display" style="font-size: 30px; margin: 6px 0 12px">Tanya Kampus</h2>
+              </div>
+              <div class="hero-card rise d1" style="padding: 18px">
+                <div class="batik"></div>
+                <div style="position: relative">
+                  <span style="width: 48px; height: 48px; border-radius: 16px; background: var(--brand-500); display: grid; place-items: center; box-shadow: 0 10px 22px -6px rgba(227,107,15,.6)">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round"><path d="M12 3v4M12 17v4M3 12h4M17 12h4M6 6l2.5 2.5M15.5 15.5 18 18M18 6l-2.5 2.5M8.5 15.5 6 18"/></svg>
+                  </span>
+                  <h3 class="display" style="font-size: 20px; color: #fff; margin-top: 12px">Asisten AI</h3>
+                  <p class="small" style="color: rgba(255,255,255,.7); margin-top: 6px; line-height: 1.5">
+                    Tanya apa saja soal jadwal, tugas, dan catatanmu — setiap perubahan menunggu persetujuan.
+                  </p>
+                </div>
+              </div>
+              <div class="rise d2" style="margin-top: 12px; display: flex; gap: 8px; align-items: center">
+                <span class="chip on" style="pointer-events:none">Model · Hemat</span>
+                <span class="small muted">Cepat baca data → pintar menulis</span>
+              </div>
+              <div class="rise d3" style="margin-top: 12px; display: flex; gap: 8px; align-items: center; background: #fff; border: 1px solid var(--line); border-radius: 28px; padding: 8px 8px 8px 16px">
+                <span class="small muted" style="flex: 1">Tanya jadwal, tugas, atau catatan…</span>
+                <button class="iconbtn brand" style="width: 40px; height: 40px" title="Kirim">
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M22 2 11 13M22 2l-7 20-4-9-9-4 20-7z"/></svg>
+                </button>
+              </div>
+            </div>
+
+            <div class="page" data-page="3">
+              <div class="rise">
+                <div class="eyebrow">Daftar pribadi</div>
+                <h2 class="display" style="font-size: 30px; margin: 6px 0 6px">Tugas</h2>
+                <p class="small muted" style="margin-bottom: 12px">3 belum selesai · 1 selesai</p>
+                <button class="btn lg" style="width: 100%; margin-bottom: 12px">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>
+                  Tambah tugas
+                </button>
+                <div class="row" id="chips2" style="margin-bottom: 12px">
+                  <button class="chip on" data-chip>
+                    <svg class="tick" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"><path d="M20 6 9 17l-5-5"/></svg>
+                    Belum selesai
+                  </button>
+                  <button class="chip" data-chip>
+                    <svg class="tick" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"><path d="M20 6 9 17l-5-5"/></svg>
+                    Selesai
+                  </button>
+                </div>
+              </div>
+              <div class="listrow rise d1" style="align-items: flex-start">
+                <button class="check" style="margin-top: 2px" aria-label="selesai">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"><path d="M20 6 9 17l-5-5"/></svg>
+                </button>
+                <div style="flex: 1">
+                  <strong class="small">Normalisasi tabel ERD</strong>
+                  <div class="row" style="gap: 6px; margin-top: 8px">
+                    <span class="badge butter">TENGGAT BESOK</span>
+                    <span class="badge neutral">Basis Data</span>
+                  </div>
+                </div>
+              </div>
+              <div class="listrow rise d2" style="align-items: flex-start; margin-top: 10px">
+                <button class="check on" style="margin-top: 2px" aria-label="buka kembali">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"><path d="M20 6 9 17l-5-5"/></svg>
+                </button>
+                <div style="flex: 1">
+                  <strong class="small" style="color: var(--muted); text-decoration: line-through">Laporan praktikum IMK</strong>
+                  <div class="row" style="gap: 6px; margin-top: 8px">
+                    <span class="badge neutral">SELESAI</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div class="page" data-page="4">
+              <div class="rise">
+                <div class="eyebrow">Kampus</div>
+                <h2 class="display" style="font-size: 30px; margin: 6px 0 6px">Pengaturan</h2>
+                <p class="small muted" style="margin-bottom: 14px">Semester, waktu, dan pengingat dalam kendali Anda.</p>
+              </div>
+              <div class="settings-menu">
+                <div class="listrow rise d1">
+                  <span class="tile" style="background: var(--brand-100); color: var(--brand-700)">
+                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="3" y="5" width="18" height="16" rx="3"/><path d="M8 3v4M16 3v4M3 11h18"/></svg>
+                  </span>
+                  <div style="flex: 1">
+                    <strong class="small">Semester &amp; zona waktu</strong>
+                    <div class="small muted">Ganjil 2026/2027</div>
+                  </div>
+                  <svg class="chev-ind" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="m9 18 6-6-6-6"/></svg>
+                </div>
+                <div class="listrow rise d2">
+                  <span class="tile" style="background: var(--butter-100); color: var(--butter-700)">
+                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 8a6 6 0 1 1 12 0c0 7 3 7 3 9H3c0-2 3-2 3-9"/><path d="M10.3 21a2 2 0 0 0 3.4 0"/></svg>
+                  </span>
+                  <div style="flex: 1">
+                    <strong class="small">Pengingat kuliah</strong>
+                    <div class="small muted">Aktif · 15 menit sebelum mulai</div>
+                  </div>
+                  <svg class="chev-ind" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="m9 18 6-6-6-6"/></svg>
+                </div>
+                <div class="listrow rise d3">
+                  <span class="tile" style="background: var(--plum-100); color: var(--plum-600)">
+                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 3v4M12 17v4M3 12h4M17 12h4M6 6l2.5 2.5M15.5 15.5 18 18M18 6l-2.5 2.5M8.5 15.5 6 18"/></svg>
+                  </span>
+                  <div style="flex: 1">
+                    <strong class="small">Asisten AI</strong>
+                    <div class="small muted">Penyedia, kunci API, dan model</div>
+                  </div>
+                  <svg class="chev-ind" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="m9 18 6-6-6-6"/></svg>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="dock-wrap">
+            <div class="dock" id="dock">
+              <button class="tab on" data-tab="0">
+                <span class="icon-slot">
+                  <span class="pill"></span>
+                  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="3" y="5" width="18" height="16" rx="3"/><path d="M8 3v4M16 3v4M3 11h18"/><circle cx="8" cy="15" r="1.2" fill="currentColor"/></svg>
+                </span>
+                <span class="lbl">Hari Ini</span>
+              </button>
+              <button class="tab" data-tab="1">
+                <span class="icon-slot">
+                  <span class="pill"></span>
+                  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M3 9h18M9 21V9M3 5h18v16H3z"/></svg>
+                </span>
+                <span class="lbl">Jadwal</span>
+              </button>
+              <button class="tab center" data-tab="2">
+                <span class="icon-slot" style="height: auto; overflow: visible">
+                  <span class="glow"></span>
+                  <span class="orb">
+                    <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 3v4M12 17v4M3 12h4M17 12h4M6 6l2.5 2.5M15.5 15.5 18 18M18 6l-2.5 2.5M8.5 15.5 6 18"/></svg>
+                  </span>
+                </span>
+                <span class="lbl">Asisten</span>
+              </button>
+              <button class="tab" data-tab="3">
+                <span class="icon-slot">
+                  <span class="pill"></span>
+                  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M9 6h11M9 12h11M9 18h11M4 6l1 1 2-2M4 12l1 1 2-2M4 18l1 1 2-2"/></svg>
+                </span>
+                <span class="lbl">Tugas</span>
+              </button>
+              <button class="tab" data-tab="4">
+                <span class="icon-slot">
+                  <span class="pill"></span>
+                  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.9l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.9-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.9.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.9 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1A1.7 1.7 0 0 0 4.6 9a1.7 1.7 0 0 0-.3-1.9l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.9.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.9-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.9V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg>
+                </span>
+                <span class="lbl">Pengaturan</span>
+              </button>
+            </div>
+          </div>
+          <div style="height: 16px"></div>
+        </div>
+      </div>
+
+      <div class="card">
+        <h3 style="margin-bottom: 4px">Bahasa gerak</h3>
+        <div class="spec" style="margin-bottom: 14px">Satu set durasi & kurva untuk seluruh aplikasi — sama dengan <code>ui/Motion.kt</code>.</div>
+        <div class="grid" style="gap: 10px; grid-template-columns: 1fr 1fr">
+          <div class="panel">
+            <div class="eyebrow">Press</div>
+            <h3 style="margin-top: 4px">130 ms</h3>
+            <p class="small muted">Skala tekan tombol 0,96 · ikon 0,92</p>
+          </div>
+          <div class="panel">
+            <div class="eyebrow">Quick</div>
+            <h3 style="margin-top: 4px">200 ms</h3>
+            <p class="small muted">Pil Dock, chip, warna fokus field</p>
+          </div>
+          <div class="panel">
+            <div class="eyebrow">Medium</div>
+            <h3 style="margin-top: 4px">320 ms</h3>
+            <p class="small muted">Konten masuk · perpindahan tab</p>
+          </div>
+          <div class="panel">
+            <div class="eyebrow">Long</div>
+            <h3 style="margin-top: 4px">440 ms</h3>
+            <p class="small muted">Splash keluar · sheet</p>
+          </div>
+        </div>
+        <h3 style="margin: 18px 0 4px">Kurva</h3>
+        <div class="spec" style="margin-bottom: 10px">Kurva "rise" dari asset-karsa dipakai sebagai standar.</div>
+        <div class="row">
+          <span class="badge brand">Standard · .2 .9 .2 1</span>
+          <span class="badge tide">Emphasized · .05 .7 .1 1</span>
+          <span class="badge neutral">Exit · .4 0 1 1</span>
+        </div>
+        <h3 style="margin: 18px 0 4px">Perpindahan layar</h3>
+        <p class="small muted">
+          Tab: layar baru menggeser masuk 1/14 lebar dari arah tab tujuan sambil memudar; layar lama
+          menggeser keluar 1/20 lebar. Arah mengikuti urutan tab sehingga ruang terasa punya satu sumbu.
+        </p>
+        <h3 style="margin: 18px 0 4px">Splash</h3>
+        <p class="small muted">
+          Logo tumbuh dari 0,86 sambil naik, cincin berdenyut, lalu judul dan keterangan menyusul.
+          Saat selesai splash memudar sambil mengecil 1,06× ke arah konten.
+        </p>
+        <button class="btn soft sm" style="margin-top: 14px" id="replay">Putar ulang animasi Rise</button>
+      </div>
+    </div>
+  </section>
+
+  <p class="small muted" style="margin-top: 28px">
+    Pratinjau ini hanya untuk melihat gerak dan bentuk. Aplikasi aslinya ada di
+    <code>app/src/main/java/id/personal/campus/ui/</code> (Compose) — lihat
+    <code>docs/desain-truntum.md</code> untuk pemetaan token dan durasi.
+  </p>
+</div>
+
+<div class="toast" id="toast">
+  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#ffcb9c" stroke-width="2.4" stroke-linecap="round"><path d="M20 6 9 17l-5-5"/></svg>
+  <span id="toastText">Pilihan tersimpan</span>
+</div>
+
+<script>
+  // ── Tab Dock + perpindahan halaman ──
+  const tabs = [...document.querySelectorAll('#dock .tab')];
+  const pages = [...document.querySelectorAll('#screen .page')];
+  let current = 0;
+
+  function go(next) {
+    if (next === current) return;
+    const forward = next > current;
+    tabs.forEach((t, i) => t.classList.toggle('on', i === next));
+    pages.forEach((p, i) => {
+      if (i === current) {
+        p.classList.remove('active');
+        p.classList.add('leaving');
+        setTimeout(() => p.classList.remove('leaving'), 300);
+      }
+    });
+    const target = pages[next];
+    target.style.transition = 'none';
+    target.style.transform = `translateX(${forward ? 22 : -22}px)`;
+    target.style.opacity = '0';
+    // paksa reflow lalu mainkan transisi masuk
+    void target.offsetWidth;
+    target.style.transition = '';
+    target.classList.add('active');
+    target.style.transform = '';
+    target.style.opacity = '';
+    current = next;
+    toast(`Pindah ke ${tabs[next].querySelector('.lbl').textContent}`);
+  }
+
+  tabs.forEach((t, i) => t.addEventListener('click', () => go(i)));
+
+  // ── Toast ──
+  const toastEl = document.getElementById('toast');
+  const toastText = document.getElementById('toastText');
+  let toastTimer;
+  function toast(msg) {
+    toastText.textContent = msg;
+    toastEl.classList.add('show');
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => toastEl.classList.remove('show'), 2000);
+  }
+
+  // ── Chip ──
+  document.querySelectorAll('[data-chip]').forEach((chip) => {
+    chip.addEventListener('click', () => {
+      const group = chip.parentElement;
+      group.querySelectorAll('[data-chip]').forEach((c) => c.classList.remove('on'));
+      chip.classList.add('on');
+    });
+  });
+
+  // ── Switch & centang ──
+  ['sw1', 'ck1', 'ck2'].forEach((id) => {
+    const el = document.getElementById(id);
+    el?.addEventListener('click', () => el.classList.toggle('on'));
+  });
+  document.querySelectorAll('.listrow .check').forEach((el) => {
+    el.addEventListener('click', (e) => { e.stopPropagation(); el.classList.toggle('on'); });
+  });
+
+  // ── Field pilih: panah berputar ──
+  const selectWrap = document.getElementById('selectWrap');
+  const days = ['Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu', 'Minggu'];
+  let dayIndex = 0;
+  document.getElementById('selectField').addEventListener('click', () => {
+    selectWrap.classList.toggle('open');
+    dayIndex = (dayIndex + 1) % days.length;
+    selectWrap.querySelector('span').textContent = `Hari: ${days[dayIndex]}`;
+  });
+
+  // ── Tombol memuat ──
+  const lb = document.getElementById('loadingBtn');
+  lb.addEventListener('click', () => {
+    lb.innerHTML = '<span class="spinner"></span>Memuat';
+    toast('Tombol dalam keadaan memuat');
+  });
+
+  // ── Putar ulang animasi rise ──
+  document.getElementById('replay').addEventListener('click', () => {
+    pages.forEach((p) => {
+      p.querySelectorAll('.rise').forEach((el) => {
+        el.style.animation = 'none';
+        void el.offsetWidth;
+        el.style.animation = '';
+      });
+    });
+    toast('Animasi rise diputar ulang');
+  });
+</script>
+</body>
+</html>

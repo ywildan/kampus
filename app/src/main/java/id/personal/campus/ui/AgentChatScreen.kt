@@ -1,10 +1,22 @@
 package id.personal.campus.ui
 
+import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.ExperimentalAnimationApi
+import androidx.compose.animation.plus
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.scaleIn
+import androidx.compose.animation.scaleOut
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.runtime.remember
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.material.icons.outlined.AutoAwesome
 import androidx.compose.ui.draw.clip
-import androidx.compose.material3.ButtonDefaults
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -27,28 +39,23 @@ import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.outlined.ContentCopy
+import androidx.compose.material.icons.outlined.Check
 import androidx.compose.material.icons.outlined.ExpandMore
-import androidx.compose.material.icons.outlined.Refresh
 import androidx.compose.material.icons.outlined.Send
 import androidx.compose.material.icons.outlined.Stop
 import androidx.compose.material.icons.outlined.Undo
 import androidx.compose.material.icons.outlined.WarningAmber
-import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.FilledIconButton
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.ripple
 import androidx.compose.material3.ModalBottomSheet
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.RadioButton
 import androidx.compose.material3.RadioButtonDefaults
 import androidx.compose.material3.Surface
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -150,11 +157,13 @@ fun AgentChatScreen(
 
             state.undoLabel?.let { label ->
                 item(key = "undo") {
-                    OutlinedButton(onClick = onUndo, modifier = Modifier.fillMaxWidth()) {
-                        Icon(Icons.Outlined.Undo, contentDescription = null)
-                        Spacer(Modifier.width(8.dp))
-                        Text("Batalkan: $label")
-                    }
+                    KarsaButton(
+                        "Batalkan: $label",
+                        onClick = onUndo,
+                        modifier = Modifier.fillMaxWidth(),
+                        variant = KarsaButtonVariant.Outline,
+                        icon = Icons.Outlined.Undo,
+                    )
                 }
             }
 
@@ -212,12 +221,13 @@ private fun SetupCard(setup: AgentSetup, onOpenSettings: () -> Unit, onRetry: ()
         }
         Text(setup.problem ?: "Lengkapi alamat server, model, dan kunci API di Setelan.", color = Muted)
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            Button(onClick = onOpenSettings) { Text("Buka Setelan") }
-            OutlinedButton(onClick = onRetry) { Text("Periksa lagi") }
+            KarsaButton("Buka Setelan", onClick = onOpenSettings, size = KarsaButtonSize.Sm)
+            KarsaButton("Periksa lagi", onClick = onRetry, size = KarsaButtonSize.Sm, variant = KarsaButtonVariant.Outline)
         }
     }
 }
 
+@OptIn(ExperimentalAnimationApi::class)
 @Composable
 private fun MessageBubble(message: AgentChatMessage, onRetry: () -> Unit) {
     val fromUser = message.role == AgentChatRole.USER
@@ -233,12 +243,19 @@ private fun MessageBubble(message: AgentChatMessage, onRetry: () -> Unit) {
         modifier = Modifier.fillMaxWidth(),
         horizontalArrangement = if (fromUser) Arrangement.End else Arrangement.Start,
     ) {
+        // Balon baru naik sedikit sambil memudar masuk dari sisinya sendiri.
+        val entry by rememberEnterProgress(durationMillis = 260)
         Surface(
             color = background,
             shape = if (fromUser) RoundedCornerShape(20.dp, 20.dp, 6.dp, 20.dp) else RoundedCornerShape(20.dp, 20.dp, 20.dp, 6.dp),
             border = if (fromUser) null else BorderStroke(1.dp, if (message.failureDetail != null) Danger500.copy(alpha = 0.3f) else Line),
             tonalElevation = 0.dp,
-            modifier = Modifier.fillMaxWidth(0.92f),
+            modifier = Modifier
+                .fillMaxWidth(0.92f)
+                .graphicsLayer {
+                    alpha = entry
+                    translationY = riseProgress(entry, 8f) * density
+                },
         ) {
             Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
                 if (fromUser) {
@@ -274,22 +291,14 @@ private fun MessageBubble(message: AgentChatMessage, onRetry: () -> Unit) {
 
                 if (message.failureDetail != null) {
                     Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-                        TextButton(onClick = {
+                        KarsaTextButton("Salin pesan", color = Brand600) {
                             clipboard.setText(
                                 AnnotatedString(
                                     listOfNotNull(message.text, message.failureDetail).joinToString("\n"),
                                 ),
                             )
-                        }) {
-                            Icon(Icons.Outlined.ContentCopy, contentDescription = null, modifier = Modifier.size(16.dp))
-                            Spacer(Modifier.width(4.dp))
-                            Text("Salin pesan", style = MaterialTheme.typography.bodySmall)
                         }
-                        TextButton(onClick = onRetry) {
-                            Icon(Icons.Outlined.Refresh, contentDescription = null, modifier = Modifier.size(16.dp))
-                            Spacer(Modifier.width(4.dp))
-                            Text("Coba lagi", style = MaterialTheme.typography.bodySmall)
-                        }
+                        KarsaTextButton("Coba lagi", color = Brand600, onClick = onRetry)
                     }
                 }
             }
@@ -368,8 +377,8 @@ private fun ProposalCard(proposal: AgentWriteProposal, onApprove: () -> Unit, on
             }
 
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                Button(onClick = onApprove) { Text("Setuju") }
-                OutlinedButton(onClick = onDeny, border = BorderStroke(1.dp, Line), colors = ButtonDefaults.outlinedButtonColors(containerColor = Color.White, contentColor = Ink)) { Text("Batal") }
+                KarsaButton("Setuju", onClick = onApprove, size = KarsaButtonSize.Sm, icon = Icons.Outlined.Check)
+                KarsaButton("Batal", onClick = onDeny, size = KarsaButtonSize.Sm, variant = KarsaButtonVariant.Outline)
             }
         }
     }
@@ -438,11 +447,20 @@ private fun ModelModeRow(state: AgentChatState, onModelMode: (AgentChatModelMode
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(10.dp),
     ) {
+        val modeInteraction = remember { MutableInteractionSource() }
+        val modeScale by pressScale(modeInteraction, KarsaMotion.TapScale)
+        val modeBg by animateColorAsState(
+            if (state.busy) MaterialTheme.colorScheme.surfaceVariant else Brand100,
+            tween(KarsaMotion.Quick, easing = KarsaMotion.Standard),
+            label = "modePillBg",
+        )
         Surface(
             onClick = { sheetOpen = true },
             enabled = !state.busy,
+            interactionSource = modeInteraction,
+            modifier = Modifier.graphicsLayer { scaleX = modeScale; scaleY = modeScale },
             shape = CircleShape,
-            color = if (state.busy) MaterialTheme.colorScheme.surfaceVariant else MaterialTheme.colorScheme.primaryContainer,
+            color = modeBg,
             contentColor = if (state.busy) Muted else Brand600,
             border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
             tonalElevation = 0.dp,
@@ -552,14 +570,30 @@ private fun ModelModeOption(
             "Tidak perlu internet atau kunci API; perubahan tetap menunggu persetujuan."
     }
 
+    val optionInteraction = remember { MutableInteractionSource() }
+    val optionBg by animateColorAsState(
+        if (selected) Brand100 else Paper,
+        tween(KarsaMotion.Quick, easing = KarsaMotion.Standard),
+        label = "modeOptionBg",
+    )
+    val optionBorder by animateColorAsState(
+        if (selected) Brand300 else MaterialTheme.colorScheme.outlineVariant,
+        tween(KarsaMotion.Quick, easing = KarsaMotion.Standard),
+        label = "modeOptionBorder",
+    )
     Surface(
         modifier = Modifier
             .fillMaxWidth()
-            .selectable(selected = selected, role = Role.RadioButton) { onSelect(mode) },
+            .selectable(
+                selected = selected,
+                role = Role.RadioButton,
+                interactionSource = optionInteraction,
+                indication = ripple(color = Brand500.copy(alpha = 0.12f), bounded = true),
+            ) { onSelect(mode) },
         shape = MaterialTheme.shapes.medium,
-        color = if (selected) MaterialTheme.colorScheme.primaryContainer else Paper,
+        color = optionBg,
         contentColor = Ink,
-        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
+        border = BorderStroke(1.dp, optionBorder),
         tonalElevation = 0.dp,
         shadowElevation = 0.dp,
     ) {
@@ -595,6 +629,7 @@ private fun ModelModeOption(
  * dan lingkaran yang sama berubah jadi tombol Stop saat jawaban sedang mengalir.
  * Sebelumnya OutlinedTextField kotak bergaris + IconButton polos di luar kotak.
  */
+@OptIn(ExperimentalAnimationApi::class)
 @Composable
 private fun Composer(
     state: AgentChatState,
@@ -636,21 +671,52 @@ private fun Composer(
                     },
                 )
                 Spacer(Modifier.width(8.dp))
-                FilledIconButton(
-                    onClick = if (state.busy) onStop else onSend,
-                    enabled = if (state.busy) true else state.canSend,
-                    modifier = Modifier.size(40.dp),
-                    colors = IconButtonDefaults.filledIconButtonColors(
-                        containerColor = if (state.busy) Espresso else Brand500,
-                        contentColor = Color.White,
-                        disabledContainerColor = Paper3,
-                        disabledContentColor = Muted,
-                    ),
+                // Tombol kirim ⇄ berhenti bertukar dengan putaran kecil + pudar, bukan berganti
+                // mendadak: ikon lama memutar keluar, ikon baru memutar masuk.
+                val sendInteraction = remember { MutableInteractionSource() }
+                val sendScale by pressScale(sendInteraction, 0.9f)
+                val sendBg by animateColorAsState(
+                    when {
+                        state.busy -> Espresso
+                        state.canSend -> Brand500
+                        else -> Paper3
+                    },
+                    tween(KarsaMotion.Quick, easing = KarsaMotion.Standard),
+                    label = "sendBg",
+                )
+                Box(
+                    Modifier
+                        .size(40.dp)
+                        .graphicsLayer { scaleX = sendScale; scaleY = sendScale }
+                        .clip(CircleShape)
+                        .background(sendBg)
+                        .then(if (state.canSend || state.busy) Modifier.brandShadow(CircleShape) else Modifier)
+                        .clickable(
+                            interactionSource = sendInteraction,
+                            indication = ripple(color = Color.White.copy(alpha = 0.3f), bounded = true),
+                            enabled = if (state.busy) true else state.canSend,
+                            role = Role.Button,
+                            onClick = if (state.busy) onStop else onSend,
+                        ),
+                    contentAlignment = Alignment.Center,
                 ) {
-                    Icon(
-                        if (state.busy) Icons.Outlined.Stop else Icons.Outlined.Send,
-                        contentDescription = if (state.busy) "Berhenti" else "Kirim",
-                    )
+                    AnimatedContent(
+                        targetState = state.busy,
+                        transitionSpec = {
+                            (scaleIn(tween(KarsaMotion.Quick, easing = KarsaMotion.Standard), initialScale = 0.6f) +
+                                fadeIn(tween(KarsaMotion.Press))) togetherWith
+                                (scaleOut(tween(KarsaMotion.Press, easing = KarsaMotion.Exit), targetScale = 0.6f) +
+                                    fadeOut(tween(KarsaMotion.Press)))
+                        },
+                        label = "sendIcon",
+                    ) { busy ->
+                        Icon(
+                            if (busy) Icons.Outlined.Stop else Icons.Outlined.Send,
+                            contentDescription = if (busy) "Berhenti" else "Kirim",
+                            tint = if (state.canSend || busy) Color.White else Muted,
+                            modifier = Modifier.size(20.dp),
+                        )
+                    }
                 }
             }
         }
@@ -674,7 +740,7 @@ private fun Notice(message: String, onDismiss: () -> Unit) {
             verticalAlignment = Alignment.CenterVertically,
         ) {
             Text(message, color = Ink, style = MaterialTheme.typography.bodySmall, modifier = Modifier.weight(1f))
-            TextButton(onClick = onDismiss) { Text("Tutup") }
+            KarsaTextButton("Tutup", onClick = onDismiss)
         }
     }
 }

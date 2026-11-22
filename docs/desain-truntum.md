@@ -27,8 +27,70 @@ Acuan: `asset-karsa/src/lib/brand.ts`.
 Dipakai di: Splash (`SplashScreen.kt`), Home (kartu hero + ajakan Asisten), Pengaturan (kartu merek),
 Asisten (latar layar + kartu intro), dan header editor.
 
+## Tipografi brand
+
+`ui/Theme.kt` memuat keluarga font asli asset-karsa sebagai resource (`res/font/`):
+
+| Peran | Font | Berkas |
+| --- | --- | --- |
+| Judul (`display*`, `headline*`, `titleLarge`) | Bricolage Grotesque Bold/ExtraBold | `bricolage_grotesque_*.ttf` |
+| Isi, label, tombol (`titleMedium` ke bawah) | Plus Jakarta Sans 400–800 | `plus_jakarta_sans_*.ttf` |
+
+Berkas sudah di-instance (satu ketebalan per berkas) dan disubset ke Latin + tanda baca Indonesia,
+masing-masing ±35–52 KB, jadi tidak perlu unduh font saat aplikasi berjalan. `TimeStyle` memakai
+Plus Jakarta Sans ExtraBold dengan `tnum` supaya angka jam tidak bergetar.
+
+## Bahasa gerak (`ui/Motion.kt`)
+
+Satu set durasi dan kurva dipakai seluruh aplikasi:
+
+| Nama | Nilai | Dipakai untuk |
+| --- | --- | --- |
+| `KarsaMotion.Press` | 130 ms | skala tekan tombol (0,96), ikon (0,92) |
+| `KarsaMotion.Quick` | 200 ms | perubahan warna pil Dock, chip, border fokus |
+| `KarsaMotion.Medium` | 320 ms | konten masuk (fade + naik 10–12 dp), perpindahan tab |
+| `KarsaMotion.Long` | 440 ms | splash keluar, sheet |
+| `Standard` | cubic-bezier(.2,.9,.2,1) | kurva default (sama dengan `rise` di asset-karsa) |
+| `Emphasized` | cubic-bezier(.05,.7,.1,1) | elemen yang datang |
+| `Exit` | cubic-bezier(.4,0,1,1) | elemen yang pergi |
+
+Helper: `rememberEnterProgress()` (progres masuk sekali), `pressScale()`/`Modifier.pressFeedback()`,
+`isPressed()`, dan `riseProgress()`.
+
+## Tombol & interaksi (`ui/KarsaButtons.kt`)
+
+`KarsaButton` menggantikan `Button`/`OutlinedButton`/`TextButton` Material di seluruh layar.
+Varian: `Primary`, `Dark`, `Soft`, `Outline`, `Ghost`, `Danger`, `DangerSoft`.
+Ukuran: `Sm` 36 dp pil · `Md` 48 dp r16 · `Lg` 56 dp r20.
+Semua varian: skala tekan 0,96 + pegas, warna latar beranimasi 200 ms, keadaan nonaktif memudar,
+cincin pemuat (`LoadingRing`) yang berputar, dan getaran ringan saat ditekan.
+
+Pelengkap: `KarsaIconButton` (plain/ghost/dark/brand), `DangerButton`, `KarsaTextButton`,
+`KarsaChip` (pil 36 dp dengan centang yang menyusut masuk), `KarsaSheetHandle`.
+
 ## Navigasi
 
-`KarsaDock.kt`: Dock pil espresso lima tab (Hari Ini, Jadwal, **Asisten**, Tugas, Pengaturan). Tombol
-Asisten di tengah berupa lingkaran oranye yang menonjol dengan cincin kertas. `CampusApp.kt` menutup
-aplikasi dengan splash oranye minimal 1,3 detik atau sampai data siap.
+`KarsaDock.kt`: Dock pil espresso lima tab (Hari Ini, Jadwal, **Asisten**, Tugas, Pengaturan).
+Tombol Asisten di tengah berupa lingkaran oranye yang menonjol dengan cincin kertas dan pendar
+radial yang menguat saat aktif. Tab biasa memakai pil oranye yang **mekar dari 30 → 56 dp** dengan
+`spring` (damping 0,72), ikonnya terangkat 1 dp dan membesar 1,06×, dan label berubah putih dengan
+animasi warna. Setiap ketukan memberi getaran `TextHandleMove`.
+
+`CampusApp.kt`:
+- Splash oranye minimal 1,3 detik, lalu memudar sambil mengecil 1,06× (`scaleOut`) ke arah konten.
+- Isi tiap tab berpindah lewat `AnimatedContent`: layar baru menggeser masuk 1/14 lebar dari arah
+  tab tujuan sambil memudar, layar lama menggeser keluar 1/20 lebar — arah geser mengikuti urutan
+  tab sehingga ruang terasa punya satu sumbu.
+- Layar Pengaturan juga memakai `AnimatedContent`: masuk ke sub-menu dari kanan, kembali ke menu dari kiri.
+- Splash masuk bertahap: logo tumbuh dari 0,86 sambil naik, lalu judul dan keterangan menyusul.
+
+## Permukaan lain yang dipoles
+
+- `KarsaTextField`: latar `Paper2` → putih saat fokus, guratan `Brand400` yang menyala dengan animasi warna.
+- `FieldSurface` (tanggal/jam) & `ChoiceField`: latar memutih + guratan oranye saat ditekan, panah
+  `ExpandMore` berputar 180° saat daftar terbuka.
+- `CheckCircle`: latar, guratan, dan ikon centang beranimasi (skala 0,4 → 1).
+- `ValidationText` masuk dengan fade + naik 6 dp.
+- `Badge`/`ToggleField`: transisi warna `Quick`; `OccurrenceHero` menekan 0,985× dan bilah progres
+  waktu beranimasi; baris tugas memakai `animateItem()` saat filter berubah.
+- `Toast`/snackbar: tetap memakai `SnackbarHost` M3 dengan tema Karsa.
