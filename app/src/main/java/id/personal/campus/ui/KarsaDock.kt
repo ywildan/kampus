@@ -186,7 +186,7 @@ private fun SideSlot(icon: ImageVector, on: Boolean, pressScale: Float) {
     }
 }
 
-/** Tombol tengah (Asisten): lingkaran oranye 60 dp dengan cincin kertas dan pendar lembut. */
+/** Tombol tengah (Asisten): lingkaran oranye 68 dp dengan cincin kertas dan pendar 98 dp. */
 @Composable
 private fun CenterSlot(item: DockItem, on: Boolean, pressScale: Float) {
     val fill by animateColorAsState(
@@ -213,7 +213,7 @@ private fun CenterSlot(item: DockItem, on: Boolean, pressScale: Float) {
         // Pendar oranye yang mengembang lembut saat Asisten aktif.
         Box(
             Modifier
-                .size(92.dp)
+                .size(98.dp)
                 .background(
                     Brush.radialGradient(
                         listOf(Brand500.copy(alpha = 0.42f * glow), Color.Transparent),
@@ -223,7 +223,7 @@ private fun CenterSlot(item: DockItem, on: Boolean, pressScale: Float) {
         )
         Box(
             Modifier
-                .size(60.dp)
+                .size(68.dp)
                 .graphicsLayer { scaleX = pressScale; scaleY = pressScale }
                 .shadow(12.dp, CircleShape, ambientColor = Brand500.copy(alpha = 0.5f), spotColor = Brand500.copy(alpha = 0.7f))
                 .clip(CircleShape)
@@ -235,7 +235,7 @@ private fun CenterSlot(item: DockItem, on: Boolean, pressScale: Float) {
                 item.icon,
                 contentDescription = null,
                 tint = Color.White,
-                modifier = Modifier.size(26.dp).graphicsLayer { rotationZ = iconSpin },
+                modifier = Modifier.size(28.dp).graphicsLayer { rotationZ = iconSpin },
             )
         }
     }
