@@ -1,13 +1,20 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <color name="campus_paper">#F6F4EF</color>
-    <color name="campus_ink">#14161A</color>
-    <color name="campus_rule">#D9D4C7</color>
-    <color name="campus_green">#2F6B4F</color>
-    <!-- Room badge: dark green block so the code reads from across the room. -->
-    <color name="campus_room_badge_ink">#FFFFFF</color>
-    <color name="campus_room_badge_label">#C9DCCB</color>
-    <!-- Sistem desain Karsa (kertas hangat + oranye brand), dipakai tema aplikasi. -->
+    <!--
+      Warna widget memakai token Karsa (ui/Theme.kt) supaya kartu di layar utama senada dengan
+      aplikasi: kertas hangat, tinta espresso, aksen oranye brand.
+    -->
     <color name="karsa_paper">#FBF5EC</color>
+    <color name="karsa_line">#EBE0D1</color>
+    <color name="karsa_ink">#26180F</color>
+    <color name="karsa_ink2">#5A483B</color>
+    <color name="karsa_espresso">#2A1A10</color>
+    <color name="karsa_muted">#8B7B6D</color>
     <color name="karsa_brand">#E36B0F</color>
+    <color name="karsa_brand_700">#8F4208</color>
+    <color name="karsa_butter_700">#7A5A00</color>
+
+    <!-- Label di dalam badge ruang (espresso, seperti RoomBadge di Compose). -->
+    <color name="widget_room_badge_ink">#FFFFFF</color>
+    <color name="widget_room_badge_label">#CBB6A3</color>
 </resources>

@@ -29,10 +29,11 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:breakStrategy="simple"
-                android:fontFamily="sans-serif-medium"
+                android:fontFamily="@font/plus_jakarta_sans_bold"
                 android:includeFontPadding="false"
-                android:text="PRATINJAU · Rabu"
-                android:textColor="#2F6B4F"
+                android:letterSpacing="0.13"
+                android:text="PRATINJAU · RABU"
+                android:textColor="@color/karsa_brand_700"
                 android:textSize="11sp" />
 
             <!-- No maxLines or ellipsize on time: wrap rather than truncate. -->
@@ -42,12 +43,13 @@
                 android:layout_height="wrap_content"
                 android:layout_marginTop="4dp"
                 android:breakStrategy="simple"
-                android:fontFamily="monospace"
+                android:fontFamily="@font/plus_jakarta_sans_extrabold"
                 android:includeFontPadding="false"
+                android:letterSpacing="-0.03"
                 android:text="12:30–15:00"
-                android:textColor="#14161A"
+                android:textColor="@color/karsa_ink"
                 android:textSize="22sp"
-                android:textStyle="bold" />
+                android:fontFeatureSettings="tnum" />
 
             <!-- Empty / finished states have no room code, so they use this plain line instead. -->
             <TextView
@@ -56,12 +58,11 @@
                 android:layout_height="wrap_content"
                 android:layout_marginTop="1dp"
                 android:breakStrategy="simple"
-                android:fontFamily="sans-serif"
+                android:fontFamily="@font/plus_jakarta_sans_extrabold"
                 android:includeFontPadding="false"
                 android:text="A.3b.6"
-                android:textColor="#14161A"
+                android:textColor="@color/karsa_ink"
                 android:textSize="20sp"
-                android:textStyle="bold"
                 android:visibility="gone" />
 
             <TextView
@@ -70,11 +71,11 @@
                 android:layout_height="wrap_content"
                 android:layout_marginTop="3dp"
                 android:ellipsize="end"
-                android:fontFamily="sans-serif"
+                android:fontFamily="@font/plus_jakarta_sans_semibold"
                 android:includeFontPadding="false"
                 android:maxLines="1"
                 android:text="Pengantar Akuntansi"
-                android:textColor="#14161A"
+                android:textColor="@color/karsa_ink"
                 android:textSize="14sp" />
 
             <TextView
@@ -83,10 +84,10 @@
                 android:layout_height="wrap_content"
                 android:layout_marginTop="2dp"
                 android:breakStrategy="simple"
-                android:fontFamily="sans-serif"
+                android:fontFamily="@font/plus_jakarta_sans_regular"
                 android:includeFontPadding="false"
                 android:text="Kelas 01"
-                android:textColor="#5E615B"
+                android:textColor="@color/karsa_muted"
                 android:textSize="11sp"
                 android:visibility="gone" />
 
@@ -96,10 +97,10 @@
                 android:layout_height="wrap_content"
                 android:layout_marginTop="3dp"
                 android:breakStrategy="simple"
-                android:fontFamily="sans-serif"
+                android:fontFamily="@font/plus_jakarta_sans_semibold"
                 android:includeFontPadding="false"
                 android:text="Atur semester untuk mengaktifkan jadwal"
-                android:textColor="#2F6B4F"
+                android:textColor="@color/karsa_butter_700"
                 android:textSize="11sp" />
         </LinearLayout>
 
@@ -121,12 +122,12 @@
                 android:id="@+id/widget_room_label"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:fontFamily="sans-serif-medium"
+                android:fontFamily="@font/plus_jakarta_sans_bold"
                 android:includeFontPadding="false"
-                android:letterSpacing="0.08"
+                android:letterSpacing="0.1"
                 android:maxLines="1"
                 android:text="RUANGAN"
-                android:textColor="@color/campus_room_badge_label"
+                android:textColor="@color/widget_room_badge_label"
                 android:textSize="8.5sp" />
 
             <TextView
@@ -135,13 +136,13 @@
                 android:layout_height="wrap_content"
                 android:layout_marginTop="2dp"
                 android:breakStrategy="simple"
-                android:fontFamily="sans-serif"
+                android:fontFamily="@font/plus_jakarta_sans_extrabold"
                 android:gravity="center_horizontal"
                 android:includeFontPadding="false"
+                android:letterSpacing="-0.02"
                 android:text="A.3b.6"
-                android:textColor="@color/campus_room_badge_ink"
-                android:textSize="30sp"
-                android:textStyle="bold" />
+                android:textColor="@color/widget_room_badge_ink"
+                android:textSize="30sp" />
         </LinearLayout>
     </LinearLayout>
 
@@ -162,10 +163,10 @@
         android:layout_marginTop="4dp"
         android:breakStrategy="simple"
         android:ellipsize="end"
-        android:fontFamily="sans-serif"
+        android:fontFamily="@font/plus_jakarta_sans_medium"
         android:includeFontPadding="false"
         android:maxLines="1"
-        android:textColor="#5E615B"
+        android:textColor="@color/karsa_muted"
         android:textSize="10sp"
         android:visibility="gone" />
 
@@ -179,10 +180,10 @@
             android:id="@+id/widget_data_time"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:fontFamily="sans-serif"
+            android:fontFamily="@font/plus_jakarta_sans_medium"
             android:includeFontPadding="false"
             android:text="Data --:--"
-            android:textColor="#5E615B"
+            android:textColor="@color/karsa_muted"
             android:textSize="10sp" />
         <!-- Launcher-driven countdown: the Chronometer ticks itself, so the app never repaints the
              widget per second. It replaces the "Data" stamp while visible; the live clock stays. -->
@@ -197,23 +198,23 @@
                 android:id="@+id/widget_countdown_label"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:fontFamily="sans-serif-medium"
+                android:fontFamily="@font/plus_jakarta_sans_bold"
                 android:includeFontPadding="false"
-                android:letterSpacing="0.08"
+                android:letterSpacing="0.1"
                 android:maxLines="1"
                 android:text="MULAI DALAM"
-                android:textColor="#2F6B4F"
+                android:textColor="@color/karsa_brand_700"
                 android:textSize="8.5sp" />
             <Chronometer
                 android:id="@+id/widget_countdown_clock"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_marginStart="6dp"
-                android:fontFamily="monospace"
+                android:fontFamily="@font/plus_jakarta_sans_extrabold"
                 android:includeFontPadding="false"
-                android:textColor="#14161A"
+                android:textColor="@color/karsa_ink"
                 android:textSize="12sp"
-                android:textStyle="bold" />
+                android:fontFeatureSettings="tnum" />
         </LinearLayout>
         <!-- Absorbs the leftover width, so the zone and clock stay pinned right either way.
              A TextView, not Space: only the classes annotated @RemoteView may be inflated here. -->
@@ -226,22 +227,23 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_marginEnd="6dp"
-            android:fontFamily="sans-serif"
+            android:fontFamily="@font/plus_jakarta_sans_semibold"
             android:includeFontPadding="false"
             android:text="WIB"
-            android:textColor="#5E615B"
+            android:textColor="@color/karsa_muted"
             android:textSize="10sp" />
         <!-- The launcher owns this clock; the application has no per-second timer. -->
         <TextClock
             android:id="@+id/widget_clock"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:fontFamily="monospace"
+            android:fontFamily="@font/plus_jakarta_sans_extrabold"
             android:format12Hour="HH:mm:ss"
             android:format24Hour="HH:mm:ss"
             android:includeFontPadding="false"
-            android:textColor="#14161A"
+            android:textColor="@color/karsa_ink"
             android:textSize="11sp"
-            android:timeZone="Asia/Jakarta" />
+            android:timeZone="Asia/Jakarta"
+            android:fontFeatureSettings="tnum" />
     </LinearLayout>
 </LinearLayout>

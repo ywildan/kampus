@@ -94,3 +94,24 @@ animasi warna. Setiap ketukan memberi getaran `TextHandleMove`.
 - `Badge`/`ToggleField`: transisi warna `Quick`; `OccurrenceHero` menekan 0,985× dan bilah progres
   waktu beranimasi; baris tugas memakai `animateItem()` saat filter berubah.
 - `Toast`/snackbar: tetap memakai `SnackbarHost` M3 dengan tema Karsa.
+
+## Widget layar utama (`widget/CampusWidgetProvider.kt`)
+
+Widget "Hari Ini" ikut palet Karsa setelah Compose selesai dipoles. Karena `RemoteViews` hanya
+menulis teks/ukuran/visibilitas, warnanya hidup di resource:
+
+- `drawable/widget_background.xml` — kertas `Paper` `#FBF5EC`, guratan `Line` `#EBE0D1`, radius **28 dp**
+  (sama dengan `CardShape`). Sudut membulat memakai `clipToOutline` di layout, bukan `layer-list`.
+- `drawable/widget_room_badge.xml` — blok **espresso** `#2A1A10` radius 20 dp, sepadan dengan
+  `RoomBadge(large)`; label "RUANGAN" `#CBB6A3`, angka ruang putih.
+- `values/colors.xml` — token `karsa_*` (paper, line, ink, ink2, muted, espresso, brand, butter, danger)
+  untuk widget; nama lama `campus_*` sudah dihapus.
+- Tipografi: `@font/plus_jakarta_sans_*` langsung di XML (aman, `minSdk` 26). Eyebrow status jadi
+  kapital berwarna `Brand700` dengan `letterSpacing` 0,13; jam, ruangan, dan chronometer memakai
+  ExtraBold + `tnum` supaya angka tidak bergetar tiap detik; monospace lama dihapus.
+- `WidgetRenderer.Faces` memuat Typeface brand lewat `ResourcesCompat` agar pengukuran teks
+  (lebar badge, tinggi baris, pemilihan ukuran) sama dengan yang digambar launcher.
+- Ukuran ruang utama diturunkan 30 → 26 sp (maks 34 sp saat kartu lebar) supaya jam tetap jadi
+  fokus; baris sekunder 22 sp.
+
+Pratinjau: `preview/widget-preview.html` (dilayani `python3 -m http.server` di folder `preview/`).

@@ -12,7 +12,7 @@
         android:layout_height="1dp"
         android:layout_marginTop="8dp"
         android:layout_marginBottom="6dp"
-        android:background="#D9D4C7"
+        android:background="@color/karsa_line"
         android:importantForAccessibility="no" />
 
     <!-- Same two-column pattern as the primary row, one step smaller. -->
@@ -35,11 +35,12 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:breakStrategy="simple"
-                android:fontFamily="sans-serif"
+                android:fontFamily="@font/plus_jakarta_sans_extrabold"
+                android:fontFeatureSettings="tnum"
                 android:includeFontPadding="false"
-                android:textColor="#14161A"
-                android:textSize="16sp"
-                android:textStyle="bold" />
+                android:letterSpacing="-0.02"
+                android:textColor="@color/karsa_ink"
+                android:textSize="16sp" />
 
             <TextView
                 android:id="@+id/widget_row_course"
@@ -47,10 +48,10 @@
                 android:layout_height="wrap_content"
                 android:layout_marginTop="2dp"
                 android:ellipsize="end"
-                android:fontFamily="sans-serif"
+                android:fontFamily="@font/plus_jakarta_sans_regular"
                 android:includeFontPadding="false"
                 android:maxLines="1"
-                android:textColor="#5E615B"
+                android:textColor="@color/karsa_ink2"
                 android:textSize="12sp" />
         </LinearLayout>
 
@@ -71,12 +72,12 @@
                 android:id="@+id/widget_row_room_label"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:fontFamily="sans-serif-medium"
+                android:fontFamily="@font/plus_jakarta_sans_bold"
                 android:includeFontPadding="false"
-                android:letterSpacing="0.08"
+                android:letterSpacing="0.1"
                 android:maxLines="1"
                 android:text="RUANGAN"
-                android:textColor="@color/campus_room_badge_label"
+                android:textColor="@color/widget_room_badge_label"
                 android:textSize="8sp" />
 
             <TextView
@@ -85,12 +86,12 @@
                 android:layout_height="wrap_content"
                 android:layout_marginTop="2dp"
                 android:breakStrategy="simple"
-                android:fontFamily="sans-serif"
+                android:fontFamily="@font/plus_jakarta_sans_extrabold"
                 android:gravity="center_horizontal"
                 android:includeFontPadding="false"
-                android:textColor="@color/campus_room_badge_ink"
-                android:textSize="22sp"
-                android:textStyle="bold" />
+                android:letterSpacing="-0.02"
+                android:textColor="@color/widget_room_badge_ink"
+                android:textSize="22sp" />
         </LinearLayout>
     </LinearLayout>
 </LinearLayout>

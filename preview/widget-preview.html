@@ -5,27 +5,44 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Pratinjau layout widget Kampus</title>
 <style>
-  :root { --u: 2px; }
+  @font-face { font-family: "PJS"; src: url("assets/fonts/plus_jakarta_sans_regular.ttf") format("truetype"); font-weight: 400; }
+  @font-face { font-family: "PJS"; src: url("assets/fonts/plus_jakarta_sans_semibold.ttf") format("truetype"); font-weight: 600; }
+  @font-face { font-family: "PJS"; src: url("assets/fonts/plus_jakarta_sans_bold.ttf") format("truetype"); font-weight: 700; }
+  @font-face { font-family: "PJS"; src: url("assets/fonts/plus_jakarta_sans_extrabold.ttf") format("truetype"); font-weight: 800; font-variant-numeric: tabular-nums; }
+  :root {
+    --u: 2px;
+    /* token Karsa (ui/Theme.kt) */
+    --paper: #FBF5EC; --paper2: #F5ECE0; --line: #EBE0D1;
+    --ink: #26180F; --ink2: #5A483B; --muted: #8B7B6D;
+    --brand: #E36B0F; --brand600: #C75A08; --brand700: #8F4208; --espresso: #2A1A10;
+    --butter100: #FDF0C4; --butter700: #7A5A00;
+  }
   * { box-sizing: border-box; }
   body {
     margin: 0;
     padding: 24px 16px 48px;
-    background: #E8E4DA;
-    font-family: Roboto, "Helvetica Neue", Arial, sans-serif;
-    color: #14161A;
+    background: radial-gradient(120% 90% at 50% 0%, #F1E7D9 0%, #E4D8C7 100%);
+    font-family: "PJS", Roboto, system-ui, sans-serif;
+    color: var(--ink);
   }
   h1 { font-size: 20px; margin: 0 0 4px; }
-  p.lead { margin: 0 0 20px; font-size: 13px; color: #4A4D48; max-width: 720px; line-height: 1.5; }
+  p.lead { margin: 0 0 20px; font-size: 13px; color: var(--ink2); max-width: 720px; line-height: 1.5; }
   .toolbar { margin: 0 0 24px; display: flex; gap: 8px; flex-wrap: wrap; }
   .toolbar button {
-    font: 500 13px Roboto, Arial, sans-serif;
-    padding: 8px 14px; border-radius: 8px; cursor: pointer;
-    border: 1px solid #B9B3A4; background: #F6F4EF; color: #14161A;
+    font: 600 13px "PJS", Roboto, sans-serif;
+    padding: 9px 16px; border-radius: 999px; cursor: pointer;
+    border: 1px solid var(--line); background: var(--paper); color: var(--ink);
+    transition: background .2s cubic-bezier(.2,.9,.2,1), color .2s, transform .13s, box-shadow .2s;
   }
-  .toolbar button[aria-pressed="true"] { background: #2F6B4F; border-color: #2F6B4F; color: #fff; }
+  .toolbar button:hover { background: var(--paper2); }
+  .toolbar button:active { transform: scale(.96); }
+  .toolbar button[aria-pressed="true"] {
+    background: var(--brand); border-color: var(--brand600); color: #fff;
+    box-shadow: 0 10px 22px -6px rgba(227,107,15,.62);
+  }
   .grid { display: flex; flex-wrap: wrap; gap: 28px; align-items: flex-start; }
   figure { margin: 0; }
-  figcaption { font-size: 12px; color: #4A4D48; margin-top: 8px; font-variant-numeric: tabular-nums; }
+  figcaption { font-size: 12px; color: var(--ink2); margin-top: 8px; font-variant-numeric: tabular-nums; }
 
   /* ---- Widget: mirrors campus_widget.xml (dp values via --u) ---- */
   .widget {
@@ -33,10 +50,13 @@
     display: flex;
     flex-direction: column;
     padding: calc(10 * var(--u));
-    background: #F6F4EF;
-    border: 1px solid #D9D4C7;
-    border-radius: calc(16 * var(--u));
+    background: var(--paper);
+    border: 1px solid var(--line);
+    border-radius: calc(28 * var(--u));
+    box-shadow: 0 calc(8 * var(--u)) calc(20 * var(--u)) calc(-6 * var(--u)) rgba(42,26,16,.20);
     overflow: hidden;
+    font-family: "PJS", Roboto, sans-serif;
+    color: var(--ink);
   }
   .row {
     display: flex;
@@ -46,22 +66,26 @@
   .col { flex: 1 1 auto; min-width: 0; }
   .status {
     font-size: calc(11 * var(--u));
-    font-weight: 500;
-    color: #2F6B4F;
+    font-weight: 700;
+    letter-spacing: 0.13em;
+    text-transform: uppercase;
+    color: var(--brand700);
     line-height: 1.25;
     overflow-wrap: anywhere;
   }
   .time {
     margin-top: calc(4 * var(--u));
-    font-family: "Roboto Mono", monospace;
-    font-weight: 700;
-    font-size: calc(22 * var(--u));
+    font-family: "PJS", Roboto, sans-serif;
+    font-weight: 800;
+    font-size: calc(23 * var(--u));
     line-height: 1.15;
-    letter-spacing: -0.01em;
+    letter-spacing: -0.03em;
+    font-variant-numeric: tabular-nums;
     overflow-wrap: anywhere;
   }
   .course {
     margin-top: calc(3 * var(--u));
+    font-weight: 600;
     font-size: calc(14 * var(--u));
     line-height: 1.25;
     white-space: nowrap;
@@ -71,52 +95,53 @@
   .meta {
     margin-top: calc(2 * var(--u));
     font-size: calc(11 * var(--u));
-    color: #5E615B;
+    color: var(--muted);
     line-height: 1.25;
   }
 
-  /* Room badge — dark green block, the emphasised element */
+  /* Badge ruang — blok oranye brand, elemen penekan (RoomBadge di Compose) */
   .badge {
     flex: 0 0 auto;
     display: flex;
     flex-direction: column;
     align-items: center;
     padding: calc(5 * var(--u)) calc(8 * var(--u));
-    background: #2F6B4F;
-    border: 1px solid #245640;
-    border-radius: calc(10 * var(--u));
+    background: var(--espresso);
+    border-radius: calc(20 * var(--u));
+    box-shadow: 0 calc(8 * var(--u)) calc(18 * var(--u)) calc(-8 * var(--u)) rgba(42,26,16,.45);
   }
   .badge-label {
     font-size: calc(8.5 * var(--u));
-    font-weight: 500;
-    letter-spacing: 0.08em;
-    color: #C9DCCB;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    color: #CBB6A3;
     line-height: 1.2;
     white-space: nowrap;
   }
   .badge-room {
     margin-top: calc(2 * var(--u));
-    font-size: calc(30 * var(--u));
-    font-weight: 700;
-    color: #FFFFFF;
+    font-size: calc(24 * var(--u));
+    font-weight: 800;
+    color: #fff;
     line-height: 1.05;
     letter-spacing: -0.02em;
     white-space: nowrap;
   }
 
   .next { margin-top: calc(8 * var(--u)); }
-  .divider { height: 1px; background: #D9D4C7; margin-bottom: calc(6 * var(--u)); }
+  .divider { height: 1px; background: var(--line); margin-bottom: calc(6 * var(--u)); }
   .next .status { font-size: calc(11 * var(--u)); }
   .next-time {
     margin-top: calc(2 * var(--u));
-    font-weight: 700;
+    font-weight: 800;
+    letter-spacing: -0.02em;
     font-size: calc(16 * var(--u));
     line-height: 1.2;
   }
   .next-course {
     margin-top: calc(2 * var(--u));
     font-size: calc(12 * var(--u));
-    color: #5E615B;
+    color: var(--ink2);
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
@@ -127,7 +152,7 @@
   .more {
     margin-top: calc(4 * var(--u));
     font-size: calc(10 * var(--u));
-    color: #5E615B;
+    color: var(--muted);
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
@@ -140,27 +165,29 @@
     align-items: center;
     gap: calc(6 * var(--u));
     font-size: calc(10 * var(--u));
-    color: #5E615B;
+    color: var(--muted);
   }
   .footer .spacer { flex: 1 1 auto; }
-  .footer .clock { font-family: "Roboto Mono", monospace; font-size: calc(11 * var(--u)); color: #14161A; }
+  .footer .clock {
+    font-weight: 800; font-size: calc(11 * var(--u)); color: var(--ink);
+    font-variant-numeric: tabular-nums;
+  }
 
   /* Launcher-driven countdown; replaces the "Data" stamp while it is visible. */
   .countdown { display: flex; align-items: center; gap: calc(6 * var(--u)); }
   .countdown-label {
     font-size: calc(8.5 * var(--u));
-    font-weight: 500;
-    letter-spacing: 0.08em;
-    color: #2F6B4F;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    color: var(--brand700);
     line-height: 1.2;
     white-space: nowrap;
   }
   .countdown-clock {
-    font-family: "Roboto Mono", monospace;
-    font-weight: 700;
+    font-weight: 800;
     font-size: calc(12 * var(--u));
     line-height: 1.2;
-    color: #14161A;
+    color: var(--ink);
     font-variant-numeric: tabular-nums;
     white-space: nowrap;
   }
@@ -171,16 +198,18 @@
   .compact .time { font-size: calc(18 * var(--u)); }
   .compact .course { font-size: calc(12 * var(--u)); }
   .compact .meta { display: none; }
-  .compact .badge-room { font-size: calc(24 * var(--u)); }
+  .compact .badge-room { font-size: calc(20 * var(--u)); }
   .compact .badge-label { font-size: calc(8 * var(--u)); }
   .compact { padding: calc(6 * var(--u)); }
 </style>
 </head>
 <body>
-  <h1>Pratinjau layout widget “Hari Ini”</h1>
+  <h1>Pratinjau widget “Hari Ini” — gaya Karsa</h1>
   <p class="lead">
-    Replika 1:1 dari <code>campus_widget.xml</code> setelah perubahan: teks jadwal di kolom kiri,
-    kode ruangan di badge hijau tua tersendiri di kanan, dengan label kecil “RUANGAN” di atasnya.
+    Replika 1:1 dari <code>campus_widget.xml</code> dengan palet Karsa: kertas hangat
+    <code>#FBF5EC</code>, garis <code>#EBE0D1</code>, sudut kartu 28dp, badge ruangan blok espresso
+    <code>#2A1A10</code> (sudut 20dp), dan tipografi Plus Jakarta Sans. Latar sengaja rata tanpa
+    motif batik: <code>layer-list</code> di RemoteViews tidak bisa memotong motif ke sudut membulat.
     Setiap sisa jadwal di hari yang sama dapat barisnya sendiri (dulu hanya satu baris), dan bila
     tidak muat, sisa itu diringkas jadi “+N jadwal lagi hari ini”. Footer menampilkan hitung mundur
     live ke jam mulai (Chronometer yang digerakkan launcher, bukan refresh widget) dan menyembunyikan

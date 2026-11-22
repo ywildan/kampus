@@ -16,6 +16,7 @@ import android.text.TextPaint
 import android.util.TypedValue
 import android.view.View
 import android.widget.RemoteViews
+import androidx.core.content.res.ResourcesCompat
 import id.personal.campus.R
 import id.personal.campus.data.SettingsEntity
 import id.personal.campus.reminder.ScheduleIntents
@@ -114,10 +115,23 @@ private object WidgetRenderer {
     private val locale = Locale.forLanguageTag("id-ID")
     private val dateFormat = DateTimeFormatter.ofPattern("EEEE, d MMM yyyy", locale)
     private val timeFormat = DateTimeFormatter.ofPattern("HH:mm", locale)
-    private val regular = Typeface.create("sans-serif", Typeface.NORMAL)
-    private val medium = Typeface.create("sans-serif-medium", Typeface.NORMAL)
-    private val bold = Typeface.create("sans-serif", Typeface.BOLD)
-    private val monoBold = Typeface.create("monospace", Typeface.BOLD)
+
+    /**
+     * Pengukuran memakai font brand yang sama dengan XML (res/font/plus_jakarta_sans_*),
+     * supaya lebar/tinggi yang dihitung di sini cocok dengan yang digambar launcher.
+     * TypefaceCompat menyimpan cache, jadi memuat ulang per render tidak mahal.
+     */
+    private class Faces(context: Context) {
+        private fun load(id: Int, fallback: Typeface): Typeface =
+            ResourcesCompat.getFont(context, id) ?: fallback
+
+        val regular = load(R.font.plus_jakarta_sans_regular, Typeface.SANS_SERIF)
+        val medium = load(R.font.plus_jakarta_sans_semibold, Typeface.DEFAULT_BOLD)
+        /** Angka besar: ExtraBold, seperti TimeStyle di Compose. */
+        val bold = load(R.font.plus_jakarta_sans_extrabold, Typeface.DEFAULT_BOLD)
+        /** Pengganti monospace lama: angka tabular di font sans brand. */
+        val monoBold = bold
+    }
 
     /** Small caption above the room code; kept in sync with campus_widget.xml. */
     private const val ROOM_LABEL = "RUANGAN"
@@ -156,6 +170,11 @@ private object WidgetRenderer {
         widthDp: Int,
         heightDp: Int,
     ): RemoteViews {
+        val faces = Faces(context)
+        val regular = faces.regular
+        val medium = faces.medium
+        val bold = faces.bold
+        val monoBold = faces.monoBold
         val views = RemoteViews(context.packageName, R.layout.campus_widget)
         val primary = state.primary
         val preview = state.mode == ScheduleMode.PREVIEW
@@ -170,7 +189,9 @@ private object WidgetRenderer {
                 else -> "TIDAK ADA KULIAH BERIKUTNYA"
             }
         }
-        val heading = if (primary != null) "$status · ${primary.start.format(dateFormat)}" else status
+        // Eyebrow kapital, seperti EyebrowStyle di Compose.
+        val heading = (if (primary != null) "$status · ${primary.start.format(dateFormat)}" else status)
+            .uppercase(locale)
         val time = primary?.let(::timeRange) ?: when (state.mode) {
             ScheduleMode.FINISHED -> "Semester selesai"
             ScheduleMode.EMPTY -> "Belum ada jadwal"
@@ -212,15 +233,16 @@ private object WidgetRenderer {
         var courseSize = 14f
         var footerSize = 10f
         var timeSize = if (hasBadge) 22f else 20f
-        var roomSize = if (hasBadge) 30f else 20f
+        var roomSize = if (hasBadge) 24f else 20f
         var showCourse = true
 
-        // Sizing priority: the room badge keeps the biggest type it can and the time takes what is
-        // left. The badge never grows past the point where the time would have to wrap, so a narrow
-        // widget shrinks both instead of pushing a line outside the card.
+        // Sizing priority: the time stays the hero, the room badge takes the biggest type that still
+        // leaves the time and course readable. The badge never grows past the point where the time
+        // would have to wrap, so a narrow widget shrinks both instead of pushing a line outside.
         val minTimeSize = 13f
-        // A bigger card gives the extra width to the room code, not to the time.
-        if (hasBadge) roomSize = (30f + (contentWidth - 230f) * 0.10f).coerceIn(30f, 44f)
+        // The floor is RoomBadge(large) in Compose (24sp) and only a wide card may go past it;
+        // at 4x2 the room code has to give way so the course name is not cut to nothing.
+        if (hasBadge) roomSize = (24f + (contentWidth - 230f) * 0.08f).coerceIn(24f, 32f)
 
         /** Widest the badge may get before the time on a single line would no longer fit. */
         fun badgeCeiling(timeText: String, face: Typeface, share: Float): Float {
@@ -260,10 +282,10 @@ private object WidgetRenderer {
         // still fits next to them at the smallest footer type.
         var showCountdown = countdown?.let {
             countdownWidth(it) + measure.width(zone, 7f, regular) + 6 +
-                measure.width("00:00:00", 8f, Typeface.MONOSPACE) <= contentWidth
+                measure.width("00:00:00", 8f, monoBold) <= contentWidth
         } ?: false
 
-        // The room code is the hero: the time is fitted to the narrower text column instead.
+        // Fit the time to the column that is left after the badge instead of letting it wrap.
         timeSize = measure.fitWidth(time, timeSize, 13f, monoBold, leftWidth())
 
         fun footerLeftWidth(): Float = if (showCountdown && countdown != null) {
@@ -274,12 +296,12 @@ private object WidgetRenderer {
 
         fun footerWidth(): Float = footerLeftWidth() +
             measure.width(zone, footerSize, regular) + 6 +
-            measure.width("00:00:00", footerSize + 1, Typeface.MONOSPACE)
+            measure.width("00:00:00", footerSize + 1, monoBold)
         while (footerWidth() > contentWidth && footerSize > 7f) footerSize -= 0.5f
 
         fun footerHeight(): Float {
             val rightWidth = measure.width(zone, footerSize, regular) + 6 +
-                measure.width("00:00:00", footerSize + 1, Typeface.MONOSPACE)
+                measure.width("00:00:00", footerSize + 1, monoBold)
             val leftHeight = if (showCountdown && countdown != null) {
                 measure.height("00:00:00", COUNTDOWN_SIZE, monoBold, oneLine = true)
             } else {
@@ -288,7 +310,7 @@ private object WidgetRenderer {
             return maxOf(
                 leftHeight,
                 measure.height(zone, footerSize, regular),
-                measure.height("00:00:00", footerSize + 1, Typeface.MONOSPACE),
+                measure.height("00:00:00", footerSize + 1, monoBold),
             )
         }
 
