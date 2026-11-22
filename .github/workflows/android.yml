@@ -47,23 +47,20 @@ jobs:
             python3 - <<'PYEOF'
           import re
           lines = open('/tmp/build.log', errors='replace').read().splitlines()
-          pats = [
-              r'^e: ', r'^w: .*(error|unresolved)', r'FAILURE:', r'What went wrong',
-              r'^\s*> ', r'Execution failed for task', r'error:', r'Deprecated Gradle features',
-              r'^FAILURE', r'BUILD FAILED',
-          ]
-          picked, last = [], None
-          for i, line in enumerate(lines):
-              txt = line.rstrip()
-              if not txt.strip():
+          errs = []
+          for line in lines:
+              t = line.strip()
+              if not t:
                   continue
-              if any(re.search(p, txt) for p in pats):
-                  if txt != last:
-                      picked.append(txt[:900])
-                      last = txt
-          for txt in picked[:40]:
-              print('::error::' + txt.replace('%', '%25').replace('\r', ''))
-          print('::error::total log lines: %d' % len(lines))
+              if (t.startswith('e: ') or ' error: ' in t or t.startswith('error:')
+                      or 'Execution failed for task' in t or 'What went wrong' in t
+                      or t.startswith('FAILURE:') or 'Unresolved reference' in t
+                      or 'Lint found' in t or t.startswith('BUILD FAILED')):
+                  if t not in errs:
+                      errs.append(t[:900])
+          for t in errs[:9]:
+              print('::error::' + t.replace('%', '%25').replace('\r', ''))
+          print('::error::ringkas: %d baris error dari %d baris log' % (len(errs), len(lines)))
           PYEOF
           fi
           exit $status
