@@ -37,9 +37,36 @@ jobs:
           gradle-version: '8.11.1'
           cache-disabled: true
       - name: Probe build
-        run: >-
-          gradle --no-daemon --no-configuration-cache
-          testReleaseUnitTest lintRelease assembleRelease
+        shell: bash
+        run: |
+          set +e
+          gradle --no-daemon --no-configuration-cache --continue \
+            testReleaseUnitTest lintRelease assembleRelease > /tmp/build.log 2>&1
+          status=$?
+          if [ $status -ne 0 ]; then
+            python3 - <<'PYEOF'
+          import re
+          lines = open('/tmp/build.log', errors='replace').read().splitlines()
+          pats = [
+              r'^e: ', r'^w: .*(error|unresolved)', r'FAILURE:', r'What went wrong',
+              r'^\s*> ', r'Execution failed for task', r'error:', r'Deprecated Gradle features',
+              r'^FAILURE', r'BUILD FAILED',
+          ]
+          picked, last = [], None
+          for i, line in enumerate(lines):
+              txt = line.rstrip()
+              if not txt.strip():
+                  continue
+              if any(re.search(p, txt) for p in pats):
+                  if txt != last:
+                      picked.append(txt[:900])
+                      last = txt
+          for txt in picked[:40]:
+              print('::error::' + txt.replace('%', '%25').replace('\r', ''))
+          print('::error::total log lines: %d' % len(lines))
+          PYEOF
+          fi
+          exit $status
 
   build:
     runs-on: ubuntu-24.04
