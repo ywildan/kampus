@@ -2,10 +2,10 @@
 <resources>
     <style name="Theme.Campus" parent="android:style/Theme.Material.Light.NoActionBar">
         <item name="android:fontFamily">sans</item>
-        <item name="android:colorAccent">@color/campus_green</item>
-        <item name="android:windowBackground">@color/campus_paper</item>
+        <item name="android:colorAccent">@color/karsa_brand</item>
+        <item name="android:windowBackground">@color/karsa_brand</item>
         <item name="android:statusBarColor">@android:color/transparent</item>
-        <item name="android:navigationBarColor">@color/campus_paper</item>
+        <item name="android:navigationBarColor">@color/karsa_paper</item>
         <item name="android:windowLightStatusBar">true</item>
         <item name="android:windowActionModeOverlay">true</item>
         <item name="android:windowSoftInputMode">adjustResize</item>

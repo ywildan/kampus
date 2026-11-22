@@ -1,11 +1,12 @@
 <?xml version="1.0" encoding="utf-8"?>
+<!-- Logo Kampus: bintang batik Truntum (8 sudut) putih di atas oranye brand. -->
 <vector xmlns:android="http://schemas.android.com/apk/res/android"
     android:width="108dp"
     android:height="108dp"
     android:viewportWidth="108"
     android:viewportHeight="108">
-    <path android:fillColor="#F6F4EF" android:pathData="M0,0h108v108h-108z" />
-    <path android:fillColor="#2F6B4F" android:pathData="M54,24L23,39L54,54L85,39Z" />
-    <path android:fillColor="#2F6B4F" android:pathData="M34,49L54,59L74,49L74,65Q54,80 34,65Z" />
-    <path android:fillColor="#14161A" android:pathData="M82,43h3v25h-3zM28,82h52v3h-52z" />
+    <path android:fillColor="#E36B0F" android:pathData="M0,0h108v108h-108z" />
+    <path android:fillColor="#FFFFFF" android:pathData="M54.00,11.00L58.28,43.67L73.46,34.54L64.33,49.72L97.00,54.00L64.33,58.28L73.46,73.46L58.28,64.33L54.00,97.00L49.72,64.33L34.54,73.46L43.67,58.28L11.00,54.00L43.67,49.72L34.54,34.54L49.72,43.67Z" />
+    <path android:fillColor="#E36B0F" android:pathData="M43.94,54a10.06,10.06 0 1,0 20.12,0a10.06,10.06 0 1,0 -20.12,0Z" />
+    <path android:fillColor="#FFE6D0" android:pathData="M15.17,18.53a3.35,3.35 0 1,0 6.71,0a3.35,3.35 0 1,0 -6.71,0Z M86.12,18.53a3.35,3.35 0 1,0 6.71,0a3.35,3.35 0 1,0 -6.71,0Z M15.17,89.47a3.35,3.35 0 1,0 6.71,0a3.35,3.35 0 1,0 -6.71,0Z M86.12,89.47a3.35,3.35 0 1,0 6.71,0a3.35,3.35 0 1,0 -6.71,0Z" />
 </vector>

@@ -1,5 +1,25 @@
 package id.personal.campus.ui
 
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.draw.clip
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.Surface
+import androidx.compose.material3.Icon
+import androidx.compose.material.icons.outlined.ChevronRight
+import androidx.compose.material.icons.outlined.Info
+import androidx.compose.material.icons.outlined.AutoAwesome
+import androidx.compose.material.icons.outlined.AdminPanelSettings
+import androidx.compose.material.icons.outlined.NotificationsActive
+import androidx.compose.material.icons.outlined.CalendarMonth
+import androidx.compose.material.icons.Icons
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.background
+import androidx.compose.foundation.BorderStroke
 import android.Manifest
 import android.content.ActivityNotFoundException
 import android.content.Context
@@ -23,7 +43,6 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -98,42 +117,48 @@ fun SettingsScreen(
         Modifier.fillMaxSize().imePadding().verticalScroll(rememberScrollState()).padding(20.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp),
     ) {
-        PageHeading("Pengaturan", "Semester, waktu, dan pengingat dalam kendali Anda.")
+        PageHeading("Pengaturan", "Semester, waktu, dan pengingat dalam kendali Anda.", eyebrow = "Kampus")
+        if (section == null) BrandCard(settings)
 
         if (section == null) {
             SettingsMenuRow(
+                icon = Icons.Outlined.CalendarMonth, tone = BadgeTone.Brand,
                 title = "Semester & zona waktu",
                 subtitle = if (settings.semesterName.isNotBlank()) settings.semesterName
                     else "Nama semester, tanggal, dan zona jadwal",
                 onClick = { section = SECTION_SEMESTER },
             )
             SettingsMenuRow(
+                icon = Icons.Outlined.NotificationsActive, tone = BadgeTone.Butter,
                 title = "Pengingat kuliah",
                 subtitle = if (settings.remindersEnabled) "Aktif · ${settings.reminderMinutes} menit sebelum mulai"
                     else "Aktifkan pengingat dan atur waktunya",
                 onClick = { section = SECTION_REMINDER },
             )
             SettingsMenuRow(
+                icon = Icons.Outlined.AdminPanelSettings, tone = BadgeTone.Tide,
                 title = "Akses dari Android",
                 subtitle = "Notifikasi dan alarm tepat waktu",
                 onClick = { section = SECTION_ACCESS },
             )
             SettingsMenuRow(
+                icon = Icons.Outlined.AutoAwesome, tone = BadgeTone.Plum,
                 title = "Asisten AI",
                 subtitle = if (agent.config.baseUrl.isNotBlank()) "Penyedia tersimpan: ${agent.config.baseUrl}"
                     else "Penyedia, kunci API, dan model",
                 onClick = { section = SECTION_AGENT },
             )
             SettingsMenuRow(
+                icon = Icons.Outlined.Info, tone = BadgeTone.Neutral,
                 title = "Tentang & batas",
                 subtitle = "Widget, data lokal, dan batas pengingat",
                 onClick = { section = SECTION_ABOUT },
             )
-            if (dirty) Text("Ada perubahan yang belum disimpan.", color = CampusGreen, style = MaterialTheme.typography.labelLarge)
+            if (dirty) Text("Ada perubahan yang belum disimpan.", color = Brand600, style = MaterialTheme.typography.labelLarge)
             return@Column
         }
 
-        TextButton(onClick = { section = null }) { Text("‹ Kembali ke Pengaturan") }
+        TextButton(onClick = { section = null }, colors = ButtonDefaults.textButtonColors(contentColor = Brand600)) { Text("‹ Kembali ke Pengaturan", fontWeight = FontWeight.Bold) }
 
         when (section) {
             SECTION_SEMESTER -> SemesterSection(
@@ -220,18 +245,53 @@ fun SettingsScreen(
 }
 
 @Composable
-private fun SettingsMenuRow(title: String, subtitle: String, onClick: () -> Unit) {
-    PaperPanel {
-        Row(
-            modifier = Modifier.fillMaxWidth().clickable(onClick = onClick),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                Text(title, style = MaterialTheme.typography.titleMedium)
-                Text(subtitle, color = MutedInk, style = MaterialTheme.typography.bodySmall)
+private fun SettingsMenuRow(icon: ImageVector, tone: BadgeTone, title: String, subtitle: String, onClick: () -> Unit) {
+    Surface(
+        onClick = onClick, modifier = Modifier.fillMaxWidth(), color = Color.White,
+        border = BorderStroke(1.dp, Line), shape = RoundedCornerShape(20.dp), tonalElevation = 0.dp, shadowElevation = 0.dp,
+    ) {
+        Row(Modifier.padding(14.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(14.dp)) {
+            Box(Modifier.size(44.dp).clip(RoundedCornerShape(14.dp)).background(tone.bg), contentAlignment = Alignment.Center) {
+                Icon(icon, contentDescription = null, tint = tone.fg, modifier = Modifier.size(22.dp))
             }
-            Text("›", color = MutedInk, style = MaterialTheme.typography.titleLarge)
+            Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                Text(title, style = MaterialTheme.typography.titleMedium, maxLines = 1)
+                Text(subtitle, color = Muted, style = MaterialTheme.typography.bodySmall, maxLines = 1)
+            }
+            Icon(Icons.Outlined.ChevronRight, contentDescription = null, tint = Muted, modifier = Modifier.size(18.dp))
+        }
+    }
+}
+
+/** Kartu merek oranye bermotif Truntum di puncak menu Pengaturan. */
+@Composable
+private fun BrandCard(settings: SettingsEntity) {
+    val shape = CardShape
+    Surface(
+        modifier = Modifier.fillMaxWidth().brandShadow(shape),
+        color = Brand500, contentColor = Color.White, shape = shape, tonalElevation = 0.dp, shadowElevation = 0.dp,
+    ) {
+        Box {
+            BatikPattern(Modifier.matchParentSize(), color = Color.White, alpha = 0.20f)
+            Box(
+                Modifier.matchParentSize().background(
+                    Brush.linearGradient(listOf(Color.Transparent, Espresso.copy(alpha = 0.45f))),
+                ),
+            )
+            Row(Modifier.padding(20.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(16.dp)) {
+                TruntumMark(56.dp, tile = Color.White, ink = Brand500)
+                Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                    Text("Kampus", style = MaterialTheme.typography.headlineSmall, color = Color.White)
+                    Text(
+                        settings.semesterName.ifBlank { "Ruang pribadi, sepenuhnya offline" },
+                        color = Color.White.copy(alpha = 0.9f), style = MaterialTheme.typography.bodyMedium, maxLines = 1,
+                    )
+                    Text(
+                        if (settings.remindersEnabled) "Pengingat ${settings.reminderMinutes} menit sebelum mulai" else "Pengingat nonaktif",
+                        color = Color.White.copy(alpha = 0.75f), style = MaterialTheme.typography.bodySmall, maxLines = 1,
+                    )
+                }
+            }
         }
     }
 }
@@ -244,12 +304,12 @@ private fun SaveRow(
     onSave: () -> Unit,
     onCancel: () -> Unit,
 ) {
-    if (dirty) Text("Ada perubahan yang belum disimpan.", color = CampusGreen, style = MaterialTheme.typography.labelLarge)
+    if (dirty) Text("Ada perubahan yang belum disimpan.", color = Brand600, style = MaterialTheme.typography.labelLarge)
     Button(
-        enabled = !busy, modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp),
+        enabled = !busy, modifier = Modifier.fillMaxWidth().heightIn(min = 52.dp),
         onClick = onSave,
-    ) { Text(if (busy) "Menyimpan…" else "Simpan pengaturan") }
-    if (dirty) TextButton(enabled = !busy, onClick = onCancel) { Text("Batalkan perubahan") }
+    ) { Text(if (busy) "Menyimpan…" else "Simpan pengaturan", fontWeight = FontWeight.Bold) }
+    if (dirty) TextButton(enabled = !busy, onClick = onCancel, colors = ButtonDefaults.textButtonColors(contentColor = Ink2)) { Text("Batalkan perubahan") }
 }
 
 @Composable
@@ -277,7 +337,7 @@ private fun SemesterSection(
             else "Jadwal dapat dipakai tanpa mengaktifkan pengingat. Konfirmasi tanggal ketika sudah diketahui.")
     }
     SectionHeading("Semester & zona waktu")
-    OutlinedTextField(
+    KarsaTextField(
         value = name, onValueChange = onNameChange, modifier = Modifier.fillMaxWidth(), enabled = !busy,
         label = { Text("Nama semester") }, singleLine = true, isError = attempted && name.isBlank(),
     )
@@ -285,7 +345,7 @@ private fun SemesterSection(
     DateField("Mulai semester", start, today, onStartChange, enabled = !busy, clearable = false)
     DateField("Akhir semester", end, today, onEndChange, enabled = !busy, clearable = false)
     if (!validDates) ValidationText("Pilih kedua tanggal. Tanggal akhir tidak boleh sebelum tanggal mulai.")
-    Text("Kedua tanggal termasuk dalam semester. Menyimpan rentang valid berarti mengonfirmasi jadwal perkuliahan, bukan tanggal pada dokumen KRS.", style = MaterialTheme.typography.bodySmall, color = MutedInk)
+    Text("Kedua tanggal termasuk dalam semester. Menyimpan rentang valid berarti mengonfirmasi jadwal perkuliahan, bukan tanggal pada dokumen KRS.", style = MaterialTheme.typography.bodySmall, color = Muted)
     if (start != null || end != null) TextButton(onClick = onClearDates) {
         Text("Kosongkan tanggal · kembali ke pratinjau")
     }
@@ -295,7 +355,7 @@ private fun SemesterSection(
         enabled = !busy,
         onSelect = onZoneChange,
     )
-    Text("Jam kuliah mengikuti zona ini, tidak otomatis mengikuti zona perangkat saat Anda bepergian.", style = MaterialTheme.typography.bodySmall, color = MutedInk)
+    Text("Jam kuliah mengikuti zona ini, tidak otomatis mengikuti zona perangkat saat Anda bepergian.", style = MaterialTheme.typography.bodySmall, color = Muted)
     saveRow()
 }
 
@@ -319,7 +379,7 @@ private fun ReminderSection(
     )
     if (reminders && !draft.semesterConfirmed) ValidationText("Pengingat memerlukan kedua tanggal semester yang valid.")
     ChoiceField("Ingatkan sebelum mulai", offset, listOf(5, 10, 15, 30, 60).map { it to "$it menit" }, enabled = !busy, onSelect = onOffsetChange)
-    Text("Hanya kuliah aktif yang mendapat pengingat. Tidak ada pengingat di luar semester atau setelah kuliah mulai.", style = MaterialTheme.typography.bodySmall, color = MutedInk)
+    Text("Hanya kuliah aktif yang mendapat pengingat. Tidak ada pengingat di luar semester atau setelah kuliah mulai.", style = MaterialTheme.typography.bodySmall, color = Muted)
     saveRow()
 }
 
@@ -339,7 +399,7 @@ private fun AndroidAccessSection(
             !settings.remindersEnabled -> "Izin tersedia. Pilihan pengingat aplikasi masih nonaktif."
             else -> "Izin notifikasi dan kanal tersedia. Pengingat mengikuti semester dan jadwal aktif yang tersimpan."
         })
-        if (!access.notificationsAllowed) Text("Mengaktifkan pilihan aplikasi tidak mengubah izin Android. Buka pengaturan sistem untuk memberi akses; tidak ada permintaan izin berulang otomatis.", style = MaterialTheme.typography.bodySmall, color = MutedInk)
+        if (!access.notificationsAllowed) Text("Mengaktifkan pilihan aplikasi tidak mengubah izin Android. Buka pengaturan sistem untuk memberi akses; tidak ada permintaan izin berulang otomatis.", style = MaterialTheme.typography.bodySmall, color = Muted)
         OutlinedButton(onClick = {
             openSystemSettings(context, Intent(Settings.ACTION_APP_NOTIFICATION_SETTINGS).putExtra(Settings.EXTRA_APP_PACKAGE, context.packageName), onNotice)
         }, modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp)) { Text("Notifikasi aplikasi") }
@@ -351,7 +411,7 @@ private fun AndroidAccessSection(
     }
     PaperPanel {
         Text("Ketepatan waktu", style = MaterialTheme.typography.titleLarge)
-        Text(if (access.exactAllowed) "Akses alarm tepat waktu tersedia." else "Pengingat perkiraan—dapat terlambat", color = if (access.exactAllowed) CampusGreen else MaterialTheme.colorScheme.error)
+        Text(if (access.exactAllowed) "Akses alarm tepat waktu tersedia." else "Pengingat perkiraan—dapat terlambat", color = if (access.exactAllowed) Brand600 else MaterialTheme.colorScheme.error)
         Text("Akses alarm tepat waktu terpisah dari notifikasi. Android tetap dapat membatasi pengiriman saat perangkat idle atau menghemat daya.", style = MaterialTheme.typography.bodyMedium)
         if (Build.VERSION.SDK_INT >= 31) OutlinedButton(
             onClick = {
@@ -370,7 +430,7 @@ private fun AboutSection() {
         Text("Widget tetap bisa dipakai", style = MaterialTheme.typography.titleLarge)
         Text("Tambahkan widget Kampus dari layar utama Android. Widget tidak membutuhkan izin notifikasi. Tanpa alarm tepat waktu atau saat perangkat tidur, pergantian jadwal pada widget dapat terlambat.")
     }
-    Text("Data jadwal, tugas, dan catatan disimpan lokal. Tidak ada login, pengambilan informasi kampus otomatis, atau sinkronisasi awan. Menghapus data aplikasi atau mencopot aplikasi akan menghapus data pribadi Anda.", style = MaterialTheme.typography.bodySmall, color = MutedInk)
+    Text("Data jadwal, tugas, dan catatan disimpan lokal. Tidak ada login, pengambilan informasi kampus otomatis, atau sinkronisasi awan. Menghapus data aplikasi atau mencopot aplikasi akan menghapus data pribadi Anda.", style = MaterialTheme.typography.bodySmall, color = Muted)
 }
 
 private fun openSystemSettings(context: Context, intent: Intent, onNotice: (String) -> Unit) {
