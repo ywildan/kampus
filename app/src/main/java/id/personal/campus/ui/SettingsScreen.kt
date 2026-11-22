@@ -1,14 +1,13 @@
 package id.personal.campus.ui
 
 import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.ContentTransform
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.slideInHorizontally
 import androidx.compose.animation.slideOutHorizontally
-import androidx.compose.animation.ExperimentalAnimationApi
-import androidx.compose.animation.plus
-import androidx.compose.animation.togetherWith
+
 import androidx.compose.runtime.remember
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.graphicsLayer
@@ -81,7 +80,6 @@ private const val SECTION_ACCESS = "akses"
 private const val SECTION_AGENT = "asisten"
 private const val SECTION_ABOUT = "tentang"
 
-@OptIn(ExperimentalAnimationApi::class)
 @Composable
 fun SettingsScreen(
     settings: SettingsEntity,
@@ -144,7 +142,7 @@ fun SettingsScreen(
                     tween(KarsaMotion.Quick + 40, easing = KarsaMotion.Exit),
                     targetOffsetX = { w -> if (entering) -w / 12 else w / 12 },
                 ) + fadeOut(tween(KarsaMotion.Quick, easing = KarsaMotion.Exit))
-                enter togetherWith exit
+                ContentTransform(enter, exit, sizeTransform = null)
             },
             label = "settingsSection",
         ) { current ->

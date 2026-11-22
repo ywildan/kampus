@@ -1,6 +1,7 @@
 package id.personal.campus.ui
 
 import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.ContentTransform
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
@@ -8,9 +9,7 @@ import androidx.compose.animation.fadeOut
 import androidx.compose.animation.scaleOut
 import androidx.compose.animation.slideInHorizontally
 import androidx.compose.animation.slideOutHorizontally
-import androidx.compose.animation.ExperimentalAnimationApi
-import androidx.compose.animation.plus
-import androidx.compose.animation.togetherWith
+
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -98,7 +97,6 @@ fun CampusApp(model: CampusViewModel, chatModel: AgentChatViewModel) {
     }
 }
 
-@OptIn(ExperimentalAnimationApi::class)
 @Composable
 private fun CampusAppContent(model: CampusViewModel, chatModel: AgentChatViewModel) {
     val state by model.state.collectAsStateWithLifecycle()
@@ -197,10 +195,9 @@ private fun CampusAppContent(model: CampusViewModel, chatModel: AgentChatViewMod
                             animationSpec = tween(KarsaMotion.Quick + 60, easing = KarsaMotion.Exit),
                             targetOffsetX = { width -> -(width / 20) * if (forward) 1 else -1 },
                         ) + fadeOut(tween(KarsaMotion.Quick, easing = KarsaMotion.Exit))
-                        enter togetherWith exit
+                        ContentTransform(enter, exit)
                     },
                     label = "tabContent",
-                    contentKey = { it },
                 ) { current ->
                     tabStates.SaveableStateProvider(current) {
                     when (current) {

@@ -40,8 +40,6 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.compose.ui.hapticfeedback.HapticFeedbackType
-import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -69,7 +67,7 @@ fun KarsaDock(
     modifier: Modifier = Modifier,
     centerIndex: Int = 2,
 ) {
-    val haptics = LocalHapticFeedback.current
+    val tap = rememberKarsaTap()
     // Indeks yang sedang "bernyawa" — dipakai indikator geser. Tertinggal satu frame supaya
     // pil lama sudah pudar saat pil baru tumbuh.
     var indicatorIndex by remember { mutableIntStateOf(selected) }
@@ -114,7 +112,7 @@ fun KarsaDock(
                         // Ripple oranye lembut di dalam pil yang meluncur.
                         indication = androidx.compose.material3.ripple(color = Color.White.copy(alpha = 0.16f), bounded = true),
                         onClick = {
-                            if (!on) haptics.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                            if (!on) tap()
                             onSelect(index)
                         },
                     )
@@ -271,7 +269,8 @@ fun SlidingDockIndicator(count: Int, selected: Int, modifier: Modifier = Modifie
         Box(
             Modifier
                 .graphicsLayer { translationX = anim.value * 56f }
-                .size(width = 56.dp, height = 36.dp)
+                .width(56.dp)
+                .height(36.dp)
                 .background(Brand500, RoundedCornerShape(18.dp)),
         )
     }

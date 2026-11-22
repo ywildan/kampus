@@ -14,6 +14,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.scale
+import androidx.compose.ui.platform.LocalView
 import kotlinx.coroutines.delay
 
 /*
@@ -116,6 +117,25 @@ fun Modifier.pressScaleLayer(
 ): Modifier {
     val scale by pressScale(interactionSource, pressed)
     return this.then(Modifier.scale(scale))
+}
+
+/**
+ * Ketukan halus untuk aksi utama (tab Dock, tombol primer).
+ * Memakai HapticFeedbackConstants platform supaya tidak bergantung pada konstanta
+ * HapticFeedbackType Compose yang berubah antar versi.
+ */
+@Composable
+fun rememberKarsaTap(): () -> Unit {
+    val view = LocalView.current
+    return remember(view) {
+        {
+            view.performHapticFeedback(
+                android.view.HapticFeedbackConstants.KEYBOARD_TAP,
+                android.view.HapticFeedbackConstants.FLAG_IGNORE_VIEW_SETTING,
+            )
+            Unit
+        }
+    }
 }
 
 /** Easing siap pakai untuk layar yang membutuhkan kurva Karsa. */

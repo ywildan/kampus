@@ -1,11 +1,10 @@
 package id.personal.campus.ui
 
 import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.ContentTransform
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
-import androidx.compose.animation.ExperimentalAnimationApi
-import androidx.compose.animation.plus
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.scaleIn
 import androidx.compose.animation.scaleOut
@@ -227,7 +226,6 @@ private fun SetupCard(setup: AgentSetup, onOpenSettings: () -> Unit, onRetry: ()
     }
 }
 
-@OptIn(ExperimentalAnimationApi::class)
 @Composable
 private fun MessageBubble(message: AgentChatMessage, onRetry: () -> Unit) {
     val fromUser = message.role == AgentChatRole.USER
@@ -629,7 +627,6 @@ private fun ModelModeOption(
  * dan lingkaran yang sama berubah jadi tombol Stop saat jawaban sedang mengalir.
  * Sebelumnya OutlinedTextField kotak bergaris + IconButton polos di luar kotak.
  */
-@OptIn(ExperimentalAnimationApi::class)
 @Composable
 private fun Composer(
     state: AgentChatState,
@@ -703,10 +700,16 @@ private fun Composer(
                     AnimatedContent(
                         targetState = state.busy,
                         transitionSpec = {
-                            (scaleIn(tween(KarsaMotion.Quick, easing = KarsaMotion.Standard), initialScale = 0.6f) +
-                                fadeIn(tween(KarsaMotion.Press))) togetherWith
-                                (scaleOut(tween(KarsaMotion.Press, easing = KarsaMotion.Exit), targetScale = 0.6f) +
-                                    fadeOut(tween(KarsaMotion.Press)))
+                            ContentTransform(
+                                targetContentEnter = scaleIn(
+                                    tween(KarsaMotion.Quick, easing = KarsaMotion.Standard),
+                                    initialScale = 0.6f,
+                                ) + fadeIn(tween(KarsaMotion.Press)),
+                                initialContentExit = scaleOut(
+                                    tween(KarsaMotion.Press, easing = KarsaMotion.Exit),
+                                    targetScale = 0.6f,
+                                ) + fadeOut(tween(KarsaMotion.Press)),
+                            )
                         },
                         label = "sendIcon",
                     ) { busy ->

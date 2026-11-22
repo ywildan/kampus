@@ -18,8 +18,11 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.Check
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.material3.ripple
@@ -34,8 +37,6 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.compose.ui.hapticfeedback.HapticFeedbackType
-import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
@@ -139,7 +140,7 @@ fun KarsaButton(
     val shape = size.shape()
     val shadowed = variant == KarsaButtonVariant.Primary && active
     val scale by pressScale(interaction, if (active) KarsaMotion.PressScale else 1f)
-    val haptics = LocalHapticFeedback.current
+    val tap = rememberKarsaTap()
 
     Row(
         modifier = modifier
@@ -156,8 +157,8 @@ fun KarsaButton(
                 enabled = active,
                 role = Role.Button,
                 onClick = {
-                    // Getaran ringan: sentuhan terasa "mendarat" tanpa berisik.
-                    haptics.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                    // Ketukan ringan: sentuhan terasa "mendarat" tanpa berisik.
+                    tap()
                     onClick()
                 },
             )
@@ -347,7 +348,7 @@ fun KarsaChip(
         if (leading) {
             Box(Modifier.size(14.dp).graphicsLayer { alpha = checkScale; scaleX = checkScale; scaleY = checkScale }) {
                 Icon(
-                    androidx.compose.material.icons.Icons.Outlined.Check,
+                    Icons.Outlined.Check,
                     contentDescription = null,
                     tint = contentColor,
                     modifier = Modifier.size(14.dp),
@@ -372,6 +373,6 @@ fun KarsaChip(
 @Composable
 fun KarsaSheetHandle(modifier: Modifier = Modifier) {
     Box(modifier.fillMaxWidth().padding(top = 10.dp, bottom = 6.dp), contentAlignment = Alignment.Center) {
-        Box(Modifier.size(width = 42.dp, height = 4.dp).background(Paper3, CircleShape))
+        Box(Modifier.width(42.dp).height(4.dp).background(Paper3, CircleShape))
     }
 }
