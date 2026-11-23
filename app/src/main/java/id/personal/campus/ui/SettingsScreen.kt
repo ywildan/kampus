@@ -1,13 +1,24 @@
 package id.personal.campus.ui
 
+import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.ContentTransform
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.slideInHorizontally
+import androidx.compose.animation.slideOutHorizontally
+
+import androidx.compose.runtime.remember
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Brush
-import androidx.compose.ui.draw.clip
-import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Icon
+import androidx.compose.material.icons.outlined.ChevronLeft
 import androidx.compose.material.icons.outlined.ChevronRight
 import androidx.compose.material.icons.outlined.Info
 import androidx.compose.material.icons.outlined.AutoAwesome
@@ -30,21 +41,21 @@ import android.provider.Settings
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.imePadding
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.Button
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.ripple
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -117,10 +128,29 @@ fun SettingsScreen(
         Modifier.fillMaxSize().imePadding().verticalScroll(rememberScrollState()).padding(20.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp),
     ) {
+        // Judul tetap di tempat; isi sub-menu berganti dengan geser + pudar ke arah yang sesuai
+        // (masuk ke bagian = dari kanan, kembali ke menu = dari kiri).
+        AnimatedContent(
+            targetState = section,
+            transitionSpec = {
+                val entering = targetState != null
+                val enter = slideInHorizontally(
+                    tween(KarsaMotion.Medium, easing = KarsaMotion.Emphasized),
+                    initialOffsetX = { w -> if (entering) w / 8 else -w / 8 },
+                ) + fadeIn(tween(KarsaMotion.Medium, easing = KarsaMotion.Standard))
+                val exit = slideOutHorizontally(
+                    tween(KarsaMotion.Quick + 40, easing = KarsaMotion.Exit),
+                    targetOffsetX = { w -> if (entering) -w / 12 else w / 12 },
+                ) + fadeOut(tween(KarsaMotion.Quick, easing = KarsaMotion.Exit))
+                ContentTransform(enter, exit, sizeTransform = null)
+            },
+            label = "settingsSection",
+        ) { current ->
+        Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
         PageHeading("Pengaturan", "Semester, waktu, dan pengingat dalam kendali Anda.", eyebrow = "Kampus")
-        if (section == null) BrandCard(settings)
+        if (current == null) BrandCard(settings)
 
-        if (section == null) {
+        if (current == null) {
             SettingsMenuRow(
                 icon = Icons.Outlined.CalendarMonth, tone = BadgeTone.Brand,
                 title = "Semester & zona waktu",
@@ -158,9 +188,9 @@ fun SettingsScreen(
             return@Column
         }
 
-        TextButton(onClick = { section = null }, colors = ButtonDefaults.textButtonColors(contentColor = Brand600)) { Text("‹ Kembali ke Pengaturan", fontWeight = FontWeight.Bold) }
+        KarsaBackRow("Kembali ke Pengaturan") { section = null }
 
-        when (section) {
+        when (current) {
             SECTION_SEMESTER -> SemesterSection(
                 settings = settings,
                 today = today,
@@ -241,25 +271,82 @@ fun SettingsScreen(
             SECTION_AGENT -> AgentSettingsSection(agent, enabled = !busy, onSave = onSaveAgent, onCheck = onCheckAgent)
             SECTION_ABOUT -> AboutSection()
         }
+        }
+        }
     }
 }
 
 @Composable
 private fun SettingsMenuRow(icon: ImageVector, tone: BadgeTone, title: String, subtitle: String, onClick: () -> Unit) {
+    val interaction = remember { MutableInteractionSource() }
+    val pressed = isPressed(interaction)
+    val background by androidx.compose.animation.animateColorAsState(
+        if (pressed) Paper2 else Color.White,
+        tween(KarsaMotion.Quick, easing = KarsaMotion.Standard),
+        label = "menuRowBg",
+    )
+    // Panah bergeser 3 dp ke kanan saat baris ditekan: isyarat halus "akan membuka".
+    val chevronShift by androidx.compose.animation.core.animateDpAsState(
+        if (pressed) 3.dp else 0.dp,
+        tween(KarsaMotion.Quick, easing = KarsaMotion.Standard),
+        label = "menuChevron",
+    )
     Surface(
-        onClick = onClick, modifier = Modifier.fillMaxWidth(), color = Color.White,
-        border = BorderStroke(1.dp, Line), shape = RoundedCornerShape(20.dp), tonalElevation = 0.dp, shadowElevation = 0.dp,
+        onClick = onClick,
+        modifier = Modifier.fillMaxWidth(),
+        interactionSource = interaction,
+        color = background,
+        border = BorderStroke(1.dp, Line),
+        shape = ListShape,
+        tonalElevation = 0.dp,
+        shadowElevation = 0.dp,
     ) {
-        Row(Modifier.padding(14.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(14.dp)) {
-            Box(Modifier.size(44.dp).clip(RoundedCornerShape(14.dp)).background(tone.bg), contentAlignment = Alignment.Center) {
+        Row(
+            Modifier.padding(14.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(14.dp),
+        ) {
+            Box(
+                Modifier.size(44.dp).clip(RoundedCornerShape(14.dp)).background(tone.bg),
+                contentAlignment = Alignment.Center,
+            ) {
                 Icon(icon, contentDescription = null, tint = tone.fg, modifier = Modifier.size(22.dp))
             }
             Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
                 Text(title, style = MaterialTheme.typography.titleMedium, maxLines = 1)
                 Text(subtitle, color = Muted, style = MaterialTheme.typography.bodySmall, maxLines = 1)
             }
-            Icon(Icons.Outlined.ChevronRight, contentDescription = null, tint = Muted, modifier = Modifier.size(18.dp))
+            Icon(
+                Icons.Outlined.ChevronRight,
+                contentDescription = null,
+                tint = if (pressed) Brand600 else Muted,
+                modifier = Modifier.size(18.dp).offset(x = chevronShift),
+            )
         }
+    }
+}
+
+/** Baris kembali di dalam sub-menu: panah kiri dengan umpan balik tekan. */
+@Composable
+private fun KarsaBackRow(label: String, onClick: () -> Unit) {
+    val interaction = remember { MutableInteractionSource() }
+    val scale by pressScale(interaction, KarsaMotion.TapScale)
+    Row(
+        Modifier
+            .clip(CircleShape)
+            .clickable(
+                interactionSource = interaction,
+                indication = ripple(color = Brand500.copy(alpha = 0.14f), bounded = true),
+                role = Role.Button,
+                onClick = onClick,
+            )
+            .graphicsLayer { scaleX = scale; scaleY = scale }
+            .padding(horizontal = 12.dp, vertical = 8.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(4.dp),
+    ) {
+        Icon(Icons.Outlined.ChevronLeft, contentDescription = null, tint = Brand600, modifier = Modifier.size(18.dp))
+        Text(label, color = Brand600, style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.Bold)
     }
 }
 
@@ -305,11 +392,15 @@ private fun SaveRow(
     onCancel: () -> Unit,
 ) {
     if (dirty) Text("Ada perubahan yang belum disimpan.", color = Brand600, style = MaterialTheme.typography.labelLarge)
-    Button(
-        enabled = !busy, modifier = Modifier.fillMaxWidth().heightIn(min = 52.dp),
+    KarsaButton(
+        if (busy) "Menyimpan…" else "Simpan pengaturan",
         onClick = onSave,
-    ) { Text(if (busy) "Menyimpan…" else "Simpan pengaturan", fontWeight = FontWeight.Bold) }
-    if (dirty) TextButton(enabled = !busy, onClick = onCancel, colors = ButtonDefaults.textButtonColors(contentColor = Ink2)) { Text("Batalkan perubahan") }
+        modifier = Modifier.fillMaxWidth(),
+        enabled = !busy,
+        loading = busy,
+        size = KarsaButtonSize.Lg,
+    )
+    if (dirty) KarsaTextButton("Batalkan perubahan", enabled = !busy, color = Ink2, onClick = onCancel)
 }
 
 @Composable
@@ -346,9 +437,7 @@ private fun SemesterSection(
     DateField("Akhir semester", end, today, onEndChange, enabled = !busy, clearable = false)
     if (!validDates) ValidationText("Pilih kedua tanggal. Tanggal akhir tidak boleh sebelum tanggal mulai.")
     Text("Kedua tanggal termasuk dalam semester. Menyimpan rentang valid berarti mengonfirmasi jadwal perkuliahan, bukan tanggal pada dokumen KRS.", style = MaterialTheme.typography.bodySmall, color = Muted)
-    if (start != null || end != null) TextButton(onClick = onClearDates) {
-        Text("Kosongkan tanggal · kembali ke pratinjau")
-    }
+    if (start != null || end != null) KarsaTextButton("Kosongkan tanggal · kembali ke pratinjau", onClick = onClearDates)
     ChoiceField(
         "Zona jadwal", zone,
         listOf("Asia/Jakarta" to "WIB · Asia/Jakarta", "Asia/Makassar" to "WITA · Asia/Makassar", "Asia/Jayapura" to "WIT · Asia/Jayapura"),
@@ -400,24 +489,37 @@ private fun AndroidAccessSection(
             else -> "Izin notifikasi dan kanal tersedia. Pengingat mengikuti semester dan jadwal aktif yang tersimpan."
         })
         if (!access.notificationsAllowed) Text("Mengaktifkan pilihan aplikasi tidak mengubah izin Android. Buka pengaturan sistem untuk memberi akses; tidak ada permintaan izin berulang otomatis.", style = MaterialTheme.typography.bodySmall, color = Muted)
-        OutlinedButton(onClick = {
-            openSystemSettings(context, Intent(Settings.ACTION_APP_NOTIFICATION_SETTINGS).putExtra(Settings.EXTRA_APP_PACKAGE, context.packageName), onNotice)
-        }, modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp)) { Text("Notifikasi aplikasi") }
-        OutlinedButton(onClick = {
-            openSystemSettings(context, Intent(Settings.ACTION_CHANNEL_NOTIFICATION_SETTINGS)
-                .putExtra(Settings.EXTRA_APP_PACKAGE, context.packageName)
-                .putExtra(Settings.EXTRA_CHANNEL_ID, "class_reminders"), onNotice)
-        }, modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp)) { Text("Kanal pengingat kuliah") }
+        KarsaButton(
+            "Notifikasi aplikasi",
+            onClick = {
+                openSystemSettings(context, Intent(Settings.ACTION_APP_NOTIFICATION_SETTINGS).putExtra(Settings.EXTRA_APP_PACKAGE, context.packageName), onNotice)
+            },
+            modifier = Modifier.fillMaxWidth(),
+            variant = KarsaButtonVariant.Outline,
+        )
+        KarsaButton(
+            "Kanal pengingat kuliah",
+            onClick = {
+                openSystemSettings(context, Intent(Settings.ACTION_CHANNEL_NOTIFICATION_SETTINGS)
+                    .putExtra(Settings.EXTRA_APP_PACKAGE, context.packageName)
+                    .putExtra(Settings.EXTRA_CHANNEL_ID, "class_reminders"), onNotice)
+            },
+            modifier = Modifier.fillMaxWidth(),
+            variant = KarsaButtonVariant.Outline,
+        )
     }
     PaperPanel {
         Text("Ketepatan waktu", style = MaterialTheme.typography.titleLarge)
         Text(if (access.exactAllowed) "Akses alarm tepat waktu tersedia." else "Pengingat perkiraan—dapat terlambat", color = if (access.exactAllowed) Brand600 else MaterialTheme.colorScheme.error)
         Text("Akses alarm tepat waktu terpisah dari notifikasi. Android tetap dapat membatasi pengiriman saat perangkat idle atau menghemat daya.", style = MaterialTheme.typography.bodyMedium)
-        if (Build.VERSION.SDK_INT >= 31) OutlinedButton(
+        if (Build.VERSION.SDK_INT >= 31) KarsaButton(
+            if (access.exactAllowed) "Tinjau akses alarm tepat waktu" else "Atur akses alarm tepat waktu",
             onClick = {
                 openSystemSettings(context, Intent(Settings.ACTION_REQUEST_SCHEDULE_EXACT_ALARM, Uri.parse("package:${context.packageName}")), onNotice)
-            }, modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp),
-        ) { Text(if (access.exactAllowed) "Tinjau akses alarm tepat waktu" else "Atur akses alarm tepat waktu") }
+            },
+            modifier = Modifier.fillMaxWidth(),
+            variant = KarsaButtonVariant.Outline,
+        )
     }
 }
 

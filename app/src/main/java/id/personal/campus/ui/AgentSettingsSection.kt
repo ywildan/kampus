@@ -24,17 +24,13 @@ import androidx.compose.material.icons.outlined.Search
 import androidx.compose.material.icons.outlined.Visibility
 import androidx.compose.material.icons.outlined.VisibilityOff
 import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.Button
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -45,6 +41,7 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
@@ -182,10 +179,15 @@ fun AgentSettingsSection(
                     style = MaterialTheme.typography.bodySmall,
                     color = Muted,
                 )
-                TextButton(enabled = !locked, onClick = {
-                    providersJson = encodeCustomProviders(customProviders.filterNot { it.id == custom.id })
-                    presetId = ""
-                }) { Text("Hapus") }
+                KarsaTextButton(
+                    "Hapus",
+                    enabled = !locked,
+                    color = Danger500,
+                    onClick = {
+                        providersJson = encodeCustomProviders(customProviders.filterNot { it.id == custom.id })
+                        presetId = ""
+                    },
+                )
             }
         }
 
@@ -218,7 +220,8 @@ fun AgentSettingsSection(
                     label = { Text("Nama penyedia custom") },
                     placeholder = { Text("mis. Server kampus") },
                 )
-                OutlinedButton(
+                KarsaButton(
+                    "Tambah ke daftar penyedia",
                     onClick = {
                         val provider = CustomProvider(
                             id = "c${java.util.UUID.randomUUID().toString().take(8)}",
@@ -229,9 +232,10 @@ fun AgentSettingsSection(
                         presetId = "custom:${provider.id}"
                         customName = ""
                     },
+                    modifier = Modifier.fillMaxWidth(),
                     enabled = !locked && customName.isNotBlank(),
-                    modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp),
-                ) { Text("Tambah ke daftar penyedia") }
+                    variant = KarsaButtonVariant.Outline,
+                )
                 Text(
                     "Penyedia baru ikut tersimpan lewat tombol Simpan di bawah.",
                     style = MaterialTheme.typography.bodySmall, color = Muted,
@@ -248,7 +252,7 @@ fun AgentSettingsSection(
                         overflow = TextOverflow.Ellipsis,
                     )
                 }
-                TextButton(enabled = !locked, onClick = { editingUrl = true }) { Text("Ubah") }
+                KarsaTextButton("Ubah", enabled = !locked, onClick = { editingUrl = true })
             }
         }
 
@@ -265,25 +269,30 @@ fun AgentSettingsSection(
             visualTransformation = if (keyVisible) VisualTransformation.None else PasswordVisualTransformation(),
             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
             trailingIcon = {
-                IconButton(onClick = { keyVisible = !keyVisible }, enabled = !locked) {
-                    Icon(
-                        if (keyVisible) Icons.Outlined.VisibilityOff else Icons.Outlined.Visibility,
-                        contentDescription = if (keyVisible) "Sembunyikan kunci" else "Tampilkan kunci",
-                    )
-                }
+                KarsaIconButton(
+                    icon = if (keyVisible) Icons.Outlined.VisibilityOff else Icons.Outlined.Visibility,
+                    contentDescription = if (keyVisible) "Sembunyikan kunci" else "Tampilkan kunci",
+                    onClick = { keyVisible = !keyVisible },
+                    enabled = !locked,
+                    variant = KarsaIconVariant.Ghost,
+                    size = 36.dp,
+                )
             },
         )
         if (state.hasKey) {
-            TextButton(enabled = !locked, onClick = { confirmClear = true }) { Text("Hapus kunci API") }
+            KarsaTextButton("Hapus kunci API", enabled = !locked, color = Danger500, onClick = { confirmClear = true })
         }
 
         HorizontalDivider(color = Line)
         ConnectionStatus(state)
-        OutlinedButton(
+        KarsaButton(
+            "Uji koneksi & ambil model",
             onClick = { onCheck(draftConfig(), draftKey.takeIf { it.isNotBlank() }) },
             enabled = !locked && urlCheck is AgentUrlResult.Valid,
-            modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp),
-        ) { Text("Uji koneksi & ambil model") }
+            modifier = Modifier.fillMaxWidth(),
+            variant = KarsaButtonVariant.Outline,
+            loading = state.busy,
+        )
         Text(
             "Menguji alamat dan kunci yang terlihat di atas, lalu mengambil daftar model. " +
                 "Kunci yang baru diketik hanya dipakai untuk uji ini dan belum tersimpan.",
@@ -323,9 +332,11 @@ fun AgentSettingsSection(
                 style = MaterialTheme.typography.bodySmall,
                 color = Muted,
             )
-            TextButton(enabled = !locked, onClick = { advancedOpen = !advancedOpen }) {
-                Text(if (advancedOpen) "Tutup" else "Buka")
-            }
+            KarsaTextButton(
+                if (advancedOpen) "Tutup" else "Buka",
+                enabled = !locked,
+                onClick = { advancedOpen = !advancedOpen },
+            )
         }
         if (advancedOpen) {
             OutlinedTextField(
@@ -348,6 +359,7 @@ fun AgentSettingsSection(
         }
     }
 
+    HorizontalDivider(color = Line)
     Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
         Text(
             if (draftDirty) "Ada perubahan belum disimpan." else "Semua perubahan tersimpan.",
@@ -355,20 +367,24 @@ fun AgentSettingsSection(
             style = MaterialTheme.typography.bodySmall,
             color = if (draftDirty) Brand600 else Muted,
         )
-        OutlinedButton(
+        KarsaButton(
+            "Batal",
             onClick = { resetDraft() },
             enabled = !locked && draftDirty,
-            modifier = Modifier.heightIn(min = 48.dp),
-        ) { Text("Batal") }
+            variant = KarsaButtonVariant.Outline,
+            size = KarsaButtonSize.Sm,
+        )
         Spacer(Modifier.width(8.dp))
-        Button(
+        KarsaButton(
+            if (state.busy) "Menyimpan…" else "Simpan",
             onClick = {
                 onSave(draftConfig(), draftKey.takeIf { it.isNotBlank() }, false)
                 draftKey = ""
             },
             enabled = canSave,
-            modifier = Modifier.heightIn(min = 48.dp),
-        ) { Text(if (state.busy) "Menyimpan..." else "Simpan") }
+            loading = state.busy,
+            size = KarsaButtonSize.Sm,
+        )
     }
 
     when (modelPickerFor) {
@@ -393,14 +409,14 @@ fun AgentSettingsSection(
         title = { Text("Hapus kunci API?") },
         text = { Text("Setelan lain tetap tersimpan. Asisten AI tidak dapat dipakai sampai kunci diisi ulang.") },
         confirmButton = {
-            Button(enabled = !locked, onClick = {
+            DangerButton(if (locked) "Menghapus…" else "Hapus", enabled = !locked) {
                 confirmClear = false
                 draftKey = ""
                 onSave(state.config, null, true)
-            }) { Text("Hapus") }
+            }
         },
-        dismissButton = { TextButton(onClick = { confirmClear = false }) { Text("Batal") } },
-        containerColor = Paper, tonalElevation = 0.dp,
+        dismissButton = { KarsaTextButton("Batal", color = Ink2) { confirmClear = false } },
+        containerColor = Color.White, shape = CardShape, tonalElevation = 0.dp,
     )
 }
 
@@ -456,20 +472,15 @@ private fun ModelPickerField(
 ) {
     Column {
         Text(label, style = MaterialTheme.typography.bodySmall, color = Muted)
-        OutlinedButton(
+        KarsaButton(
+            value.ifBlank { "Belum dipilih" },
             onClick = onOpen,
+            modifier = Modifier.fillMaxWidth(),
             enabled = enabled,
-            modifier = Modifier.fillMaxWidth().heightIn(min = 56.dp),
-        ) {
-            Text(
-                value.ifBlank { "Belum dipilih" },
-                modifier = Modifier.weight(1f),
-                style = MaterialTheme.typography.bodyMedium.copy(fontFamily = FontFamily.Monospace),
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-            )
-            Icon(Icons.Outlined.ExpandMore, contentDescription = null)
-        }
+            variant = KarsaButtonVariant.Outline,
+            size = KarsaButtonSize.Lg,
+            trailingIcon = Icons.Outlined.ExpandMore,
+        )
         Text(supporting, style = MaterialTheme.typography.bodySmall, color = Muted)
     }
 }
@@ -517,7 +528,8 @@ private fun ModelPickerSheet(
             modifier = Modifier.fillMaxWidth().padding(start = 20.dp, end = 20.dp, bottom = 24.dp),
             verticalArrangement = Arrangement.spacedBy(10.dp),
         ) {
-            Text(title, style = MaterialTheme.typography.titleLarge)
+            KarsaSheetHandle()
+            Text(title, style = MaterialTheme.typography.headlineSmall)
             Text(
                 if (models.isEmpty()) {
                     "Daftar model belum diambil dari server. Ketik nama model di bawah."
@@ -570,11 +582,13 @@ private fun ModelPickerSheet(
                 label = { Text("Atau ketik nama model") },
                 placeholder = { Text("mis. llama3.1:8b") },
             )
-            Button(
+            KarsaButton(
+                "Pakai model ini",
                 onClick = { choose(manual) },
                 enabled = manual.isNotBlank(),
-                modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp),
-            ) { Text("Pakai model ini") }
+                modifier = Modifier.fillMaxWidth(),
+                size = KarsaButtonSize.Lg,
+            )
         }
     }
 }

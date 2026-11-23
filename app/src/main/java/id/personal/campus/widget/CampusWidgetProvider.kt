@@ -114,25 +114,34 @@ private object WidgetRenderer {
     private val locale = Locale.forLanguageTag("id-ID")
     private val dateFormat = DateTimeFormatter.ofPattern("EEEE, d MMM yyyy", locale)
     private val timeFormat = DateTimeFormatter.ofPattern("HH:mm", locale)
-    private val regular = Typeface.create("sans-serif", Typeface.NORMAL)
-    private val medium = Typeface.create("sans-serif-medium", Typeface.NORMAL)
-    private val bold = Typeface.create("sans-serif", Typeface.BOLD)
-    private val monoBold = Typeface.create("monospace", Typeface.BOLD)
+
+    /**
+     * Widgets are inflated inside the launcher process, and RemoteViews has no setTypeface(), so a
+     * bundled font can never reach them: `@font/...` in the layout is ignored and the system face is
+     * used instead. These faces mirror the system families the XML asks for, so the text this
+     * renderer measures is the text the launcher actually draws.
+     */
+    private val regular: Typeface = Typeface.create("sans-serif", Typeface.NORMAL)
+    private val medium: Typeface = Typeface.create("sans-serif-medium", Typeface.NORMAL)
+    private val bold: Typeface = Typeface.create("sans-serif-black", Typeface.NORMAL)
+
+    /** Pengganti monospace lama: angka lebar tetap di face sans yang sama dengan XML. */
+    private val monoBold: Typeface = bold
 
     /** Small caption above the room code; kept in sync with campus_widget.xml. */
     private const val ROOM_LABEL = "RUANGAN"
 
     // Badge padding mirrors the 8dp/5dp padding in campus_widget.xml so measurement matches reality.
-    private const val BADGE_PAD_H = 8f
-    private const val BADGE_PAD_V = 5f
+    private const val BADGE_PAD_H = 10f
+    private const val BADGE_PAD_V = 6f
     private const val COLUMN_GAP = 8f
-    private const val ROOM_LABEL_SIZE = 8.5f
-    private const val NEXT_ROOM_LABEL_SIZE = 8f
-    private const val NEXT_TIME_SIZE = 16f
-    private const val ROW_COURSE_SIZE = 12f
+    private const val ROOM_LABEL_SIZE = 9.5f
+    private const val NEXT_ROOM_LABEL_SIZE = 9f
+    private const val NEXT_TIME_SIZE = 18f
+    private const val ROW_COURSE_SIZE = 13.5f
     // Mirrors the 8.5sp label, 12sp clock and 6dp gap in campus_widget.xml.
-    private const val COUNTDOWN_LABEL_SIZE = 8.5f
-    private const val COUNTDOWN_SIZE = 12f
+    private const val COUNTDOWN_LABEL_SIZE = 9.5f
+    private const val COUNTDOWN_SIZE = 13f
     private const val COUNTDOWN_GAP = 6f
 
     /** Divider margins (8dp + 6dp) plus the 1dp rule that separates one row from the next. */
@@ -170,7 +179,9 @@ private object WidgetRenderer {
                 else -> "TIDAK ADA KULIAH BERIKUTNYA"
             }
         }
-        val heading = if (primary != null) "$status · ${primary.start.format(dateFormat)}" else status
+        // Eyebrow kapital, seperti EyebrowStyle di Compose.
+        val heading = (if (primary != null) "$status · ${primary.start.format(dateFormat)}" else status)
+            .uppercase(locale)
         val time = primary?.let(::timeRange) ?: when (state.mode) {
             ScheduleMode.FINISHED -> "Semester selesai"
             ScheduleMode.EMPTY -> "Belum ada jadwal"
@@ -201,26 +212,27 @@ private object WidgetRenderer {
 
         // Measure the real font-scaled text, not just width or a hard-coded 4×2/4×3 threshold.
         // Compact mode sacrifices optional details before shrinking the prominent time and room.
-        val padding = if (heightDp < 160) 6 else 10
+        val padding = if (heightDp < 170) 8 else 12
         val metrics = context.resources.displayMetrics
         val contentWidth = (widthDp - padding * 2).coerceAtLeast(1)
         val budget = (heightDp - padding * 2).coerceAtLeast(1).toFloat()
         val measure = TextMeasure(context, contentWidth)
 
         val hasBadge = primary != null
-        var smallSize = 11f
-        var courseSize = 14f
-        var footerSize = 10f
-        var timeSize = if (hasBadge) 22f else 20f
-        var roomSize = if (hasBadge) 30f else 20f
+        var smallSize = 12f
+        var courseSize = 16f
+        var footerSize = 11.5f
+        var timeSize = if (hasBadge) 26f else 22f
+        var roomSize = if (hasBadge) 30f else 22f
         var showCourse = true
 
-        // Sizing priority: the room badge keeps the biggest type it can and the time takes what is
-        // left. The badge never grows past the point where the time would have to wrap, so a narrow
-        // widget shrinks both instead of pushing a line outside the card.
-        val minTimeSize = 13f
-        // A bigger card gives the extra width to the room code, not to the time.
-        if (hasBadge) roomSize = (30f + (contentWidth - 230f) * 0.10f).coerceIn(30f, 44f)
+        // Sizing priority: the time stays the hero, the room badge takes the biggest type that still
+        // leaves the time and course readable. The badge never grows past the point where the time
+        // would have to wrap, so a narrow widget shrinks both instead of pushing a line outside.
+        val minTimeSize = 17f
+        // The badge is the second loudest element after the time, so it starts big and only grows on
+        // a wide card. At 4x2 it gives way before the course name is cut to nothing.
+        if (hasBadge) roomSize = (30f + (contentWidth - 230f) * 0.08f).coerceIn(30f, 40f)
 
         /** Widest the badge may get before the time on a single line would no longer fit. */
         fun badgeCeiling(timeText: String, face: Typeface, share: Float): Float {
@@ -241,7 +253,7 @@ private object WidgetRenderer {
 
         // Shrink the code only as far as the width demands, never below a readable floor.
         if (hasBadge) {
-            while (roomSize > 15f && measure.width(room, roomSize, bold) + BADGE_PAD_H * 2 > primaryCeiling) {
+            while (roomSize > 18f && measure.width(room, roomSize, bold) + BADGE_PAD_H * 2 > primaryCeiling) {
                 roomSize -= 0.5f
             }
         }
@@ -260,11 +272,11 @@ private object WidgetRenderer {
         // still fits next to them at the smallest footer type.
         var showCountdown = countdown?.let {
             countdownWidth(it) + measure.width(zone, 7f, regular) + 6 +
-                measure.width("00:00:00", 8f, Typeface.MONOSPACE) <= contentWidth
+                measure.width("00:00:00", 8f, monoBold) <= contentWidth
         } ?: false
 
-        // The room code is the hero: the time is fitted to the narrower text column instead.
-        timeSize = measure.fitWidth(time, timeSize, 13f, monoBold, leftWidth())
+        // Fit the time to the column that is left after the badge instead of letting it wrap.
+        timeSize = measure.fitWidth(time, timeSize, minTimeSize, monoBold, leftWidth())
 
         fun footerLeftWidth(): Float = if (showCountdown && countdown != null) {
             countdownWidth(countdown)
@@ -274,12 +286,12 @@ private object WidgetRenderer {
 
         fun footerWidth(): Float = footerLeftWidth() +
             measure.width(zone, footerSize, regular) + 6 +
-            measure.width("00:00:00", footerSize + 1, Typeface.MONOSPACE)
-        while (footerWidth() > contentWidth && footerSize > 7f) footerSize -= 0.5f
+            measure.width("00:00:00", footerSize + 1, monoBold)
+        while (footerWidth() > contentWidth && footerSize > 8.5f) footerSize -= 0.5f
 
         fun footerHeight(): Float {
             val rightWidth = measure.width(zone, footerSize, regular) + 6 +
-                measure.width("00:00:00", footerSize + 1, Typeface.MONOSPACE)
+                measure.width("00:00:00", footerSize + 1, monoBold)
             val leftHeight = if (showCountdown && countdown != null) {
                 measure.height("00:00:00", COUNTDOWN_SIZE, monoBold, oneLine = true)
             } else {
@@ -288,7 +300,7 @@ private object WidgetRenderer {
             return maxOf(
                 leftHeight,
                 measure.height(zone, footerSize, regular),
-                measure.height("00:00:00", footerSize + 1, Typeface.MONOSPACE),
+                measure.height("00:00:00", footerSize + 1, monoBold),
             )
         }
 
@@ -296,10 +308,10 @@ private object WidgetRenderer {
             BADGE_PAD_V * 2 + measure.height(ROOM_LABEL, labelSize, medium) + 2 +
                 measure.height(text, size, bold, availableWidthDp = (width - BADGE_PAD_H * 2).coerceAtLeast(1f))
 
+        /** The two lines under the eyebrow; the badge is measured against this, not the eyebrow. */
         fun primaryHeight(): Float {
-            val width = leftWidth()
-            val column = measure.height(heading, smallSize, medium, availableWidthDp = width) + 4 +
-                measure.height(time, timeSize, monoBold, availableWidthDp = width) + 1 +
+            val width = contentWidth.toFloat()
+            val column = measure.height(time, timeSize, monoBold, availableWidthDp = width) + 1 +
                 (if (!hasBadge) measure.height(room, roomSize, bold, availableWidthDp = width) else 0f) +
                 (if (showCourse) {
                     3 + measure.height(course, courseSize, regular, oneLine = true, availableWidthDp = width)
@@ -310,22 +322,25 @@ private object WidgetRenderer {
             return maxOf(column, badge)
         }
 
-        fun baseHeight(): Float = primaryHeight() + 6 + footerHeight()
+        /** Eyebrow sits on its own full-width line above the row (see campus_widget.xml). */
+        fun baseHeight(): Float =
+            measure.height(heading, smallSize, medium, availableWidthDp = contentWidth.toFloat()) + 4 +
+                primaryHeight() + 6 + footerHeight()
 
         // The countdown is the first detail dropped: a small card keeps its time, room and course.
         if (baseHeight() > budget) showCountdown = false
         // Trim the secondary text first; the room badge keeps its size as long as possible.
         while (baseHeight() > budget && timeSize > 12f) timeSize -= 1f
         if (baseHeight() > budget) {
-            smallSize = 10f
-            courseSize = 12f
-            footerSize = minOf(footerSize, 9f)
+            smallSize = 11f
+            courseSize = 13.5f
+            footerSize = minOf(footerSize, 10f)
         }
         if (baseHeight() > budget) showCourse = false
-        while (baseHeight() > budget && roomSize > 16f) roomSize -= 1f
+        while (baseHeight() > budget && roomSize > 20f) roomSize -= 1f
         // At very large accessibility fonts, keep core text unellipsized and use the smallest
         // readable core size. Enlarging the widget restores all supplementary details.
-        while (baseHeight() > budget && timeSize > 10f) timeSize -= 1f
+        while (baseHeight() > budget && timeSize > 14f) timeSize -= 1f
 
         val metaHeight = if (metadata.isEmpty()) 0f else {
             2 + measure.height(metadata, smallSize, regular, availableWidthDp = leftWidth())
@@ -333,14 +348,14 @@ private object WidgetRenderer {
 
         // One row per remaining class of the day, measured with the same rule as the primary row:
         // the room badge keeps the biggest readable code, the time takes the width that is left.
-        val rowRoomSize = (22f + (contentWidth - 230f) * 0.06f).coerceIn(22f, 32f)
+        val rowRoomSize = (24f + (contentWidth - 230f) * 0.06f).coerceIn(24f, 34f)
         val rows = secondary.map { occurrence ->
             val rowRoom = occurrence.course.room.orEmpty()
             val rowTime = timeRange(occurrence)
             val ceiling = badgeCeiling(rowTime, bold, 0.55f)
             var size = rowRoomSize
             if (rowRoom.isNotEmpty()) {
-                while (size > 13f && measure.width(rowRoom, size, bold) + BADGE_PAD_H * 2 > ceiling) size -= 0.5f
+                while (size > 16f && measure.width(rowRoom, size, bold) + BADGE_PAD_H * 2 > ceiling) size -= 0.5f
             }
             val badge = badgeWidth(rowRoom, size, NEXT_ROOM_LABEL_SIZE, ceiling)
             val column = if (rowRoom.isEmpty()) {
@@ -348,7 +363,7 @@ private object WidgetRenderer {
             } else {
                 (contentWidth - badge - COLUMN_GAP).coerceAtLeast(contentWidth * 0.40f)
             }
-            val fitted = measure.fitWidth(rowTime, NEXT_TIME_SIZE, 12f, bold, column)
+            val fitted = measure.fitWidth(rowTime, NEXT_TIME_SIZE, 14f, bold, column)
             val height = maxOf(
                 measure.height(rowTime, fitted, bold, availableWidthDp = column) + 2 +
                     measure.height(

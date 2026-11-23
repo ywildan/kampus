@@ -2,33 +2,28 @@ package id.personal.campus.ui
 
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Add
-import androidx.compose.material3.Button
-import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
-import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.unit.sp
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
@@ -63,9 +58,13 @@ fun TaskRow(task: TaskEntity, courses: List<CourseEntity>, today: LocalDate, bus
         else -> BadgeTone.Neutral
     }
     Surface(
-        onClick = onEdit, modifier = Modifier.fillMaxWidth(), color = Color.White,
+        onClick = onEdit,
+        modifier = Modifier.fillMaxWidth(),
+        color = Color.White,
         border = BorderStroke(1.dp, if (overdue) Danger500.copy(alpha = 0.3f) else Line),
-        shape = RoundedCornerShape(20.dp), tonalElevation = 0.dp, shadowElevation = 0.dp,
+        shape = ListShape,
+        tonalElevation = 0.dp,
+        shadowElevation = 0.dp,
     ) {
         Row(Modifier.padding(14.dp), horizontalArrangement = Arrangement.spacedBy(12.dp), verticalAlignment = Alignment.Top) {
             CheckCircle(
@@ -92,14 +91,7 @@ fun TaskRow(task: TaskEntity, courses: List<CourseEntity>, today: LocalDate, bus
 
 @Composable
 private fun FilterChip(label: String, selected: Boolean, onClick: () -> Unit) {
-    Surface(
-        onClick = onClick, shape = CircleShape,
-        color = if (selected) Espresso else Color.White,
-        contentColor = if (selected) Color.White else Ink2,
-        border = if (selected) null else BorderStroke(1.dp, Line),
-    ) {
-        Text(label, Modifier.padding(horizontal = 16.dp, vertical = 9.dp), fontSize = 13.sp, fontWeight = FontWeight.SemiBold, maxLines = 1)
-    }
+    KarsaChip(label = label, selected = selected, onClick = onClick, leading = true)
 }
 
 @Composable
@@ -108,13 +100,25 @@ fun TasksScreen(data: CampusSnapshot, today: LocalDate, busy: Boolean, onAdd: ()
     val tasks = data.tasks.filter {
         when (filter) { "active" -> !it.completed; "done" -> it.completed; else -> true }
     }.sortedWith(compareBy<TaskEntity> { it.completed }.thenBy { it.dueEpochDay ?: Long.MAX_VALUE }.thenBy { it.id })
-    LazyColumn(Modifier.fillMaxSize(), contentPadding = PaddingValues(start = 20.dp, end = 20.dp, top = 24.dp, bottom = 24.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+    val enter by rememberEnterProgress()
+    LazyColumn(
+        modifier = Modifier.fillMaxSize().graphicsLayer {
+            alpha = enter
+            translationY = riseProgress(enter, 10f) * density
+        },
+        contentPadding = PaddingValues(start = 20.dp, end = 20.dp, top = 24.dp, bottom = 24.dp),
+        verticalArrangement = Arrangement.spacedBy(12.dp),
+    ) {
         item { PageHeading("Tugas", "${data.tasks.count { !it.completed }} belum selesai · ${data.tasks.count { it.completed }} selesai", eyebrow = "Daftar pribadi") }
         item {
-            Button(onClick = onAdd, enabled = !busy, modifier = Modifier.fillMaxWidth().heightIn(min = 52.dp).brandShadow(CircleShape)) {
-                Icon(Icons.Outlined.Add, contentDescription = null)
-                Text("Tambah tugas", Modifier.padding(start = 8.dp))
-            }
+            KarsaButton(
+                "Tambah tugas",
+                onClick = onAdd,
+                modifier = Modifier.fillMaxWidth(),
+                enabled = !busy,
+                size = KarsaButtonSize.Lg,
+                icon = Icons.Outlined.Add,
+            )
         }
         item {
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -130,7 +134,10 @@ fun TasksScreen(data: CampusSnapshot, today: LocalDate, busy: Boolean, onAdd: ()
             )
         }
         items(tasks, key = { it.id }) { task ->
-            TaskRow(task, data.courses, today, busy, { onEdit(task.id) }, onToggle)
+            // Baris meluncur halus saat filter berubah (selesai ⇄ belum selesai).
+            Box(Modifier.animateItem()) {
+                TaskRow(task, data.courses, today, busy, { onEdit(task.id) }, onToggle)
+            }
         }
         item { Text("Daftar pribadi, tersimpan offline. Notifikasi pengingat hanya untuk jadwal kuliah.", style = MaterialTheme.typography.bodySmall, color = Muted) }
     }

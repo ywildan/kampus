@@ -1,5 +1,6 @@
 package id.personal.campus.ui
 
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Shapes
@@ -8,10 +9,12 @@ import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.font.Font
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import id.personal.campus.R
 
 /*
  * Token warna sistem desain Karsa (dari replika web / asset-karsa), dipakai ulang untuk Kampus.
@@ -56,7 +59,42 @@ val Tide600 = Color(0xFF2A6385)
 val Plum100 = Color(0xFFF1DCEB)
 val Plum600 = Color(0xFF7A3E6B)
 
-val TimeStyle = TextStyle(fontFamily = FontFamily.Default, fontWeight = FontWeight.ExtraBold, fontFeatureSettings = "tnum")
+// ───────── Tipografi: keluarga font brand (asset-karsa) ─────────
+
+/** Bricolage Grotesque — judul, angka besar, nama aplikasi. */
+val Display = FontFamily(
+    Font(R.font.bricolage_grotesque_extrabold, FontWeight.ExtraBold),
+    Font(R.font.bricolage_grotesque_bold, FontWeight.Bold),
+)
+
+/** Plus Jakarta Sans — isi teks, label, tombol, dan meta. */
+val Sans = FontFamily(
+    Font(R.font.plus_jakarta_sans_regular, FontWeight.Normal),
+    Font(R.font.plus_jakarta_sans_medium, FontWeight.Medium),
+    Font(R.font.plus_jakarta_sans_semibold, FontWeight.SemiBold),
+    Font(R.font.plus_jakarta_sans_bold, FontWeight.Bold),
+    Font(R.font.plus_jakarta_sans_extrabold, FontWeight.ExtraBold),
+)
+
+/** Angka jam: sans tebal dengan lebar angka tetap supaya tidak "bergetar" tiap detik. */
+val TimeStyle = TextStyle(fontFamily = Sans, fontWeight = FontWeight.ExtraBold, fontFeatureSettings = "tnum")
+
+/** Kicker huruf kapital, tracking 0.16em (Eyebrow 11/700 di asset-karsa). */
+val EyebrowStyle = TextStyle(
+    fontFamily = Sans,
+    fontWeight = FontWeight.Bold,
+    fontSize = 11.sp,
+    lineHeight = 15.sp,
+    letterSpacing = 1.7.sp,
+)
+
+/** Label kecil untuk chip, badge, dan tombol Sm. */
+val ChipStyle = TextStyle(
+    fontFamily = Sans,
+    fontWeight = FontWeight.SemiBold,
+    fontSize = 13.sp,
+    lineHeight = 16.sp,
+)
 
 private val CampusColors = lightColorScheme(
     primary = Brand500,
@@ -88,19 +126,36 @@ private val CampusColors = lightColorScheme(
 
 private val BaseTypography = Typography()
 
-// Tampilan: sans-serif tebal dengan jarak huruf rapat, seperti judul Bricolage di replika web.
-private val Display = FontFamily.SansSerif
+/*
+ * Skala tipe mengikuti TYPE_SCALE di asset-karsa:
+ * Display 40/34 lewat Bricolage ExtraBold dengan tracking negatif, judul kartu 20/19,
+ * isi 15, label 13, meta 12, eyebrow 11 kapital bertracking lebar.
+ */
 private val CampusTypography = BaseTypography.copy(
+    displayLarge = TextStyle(fontFamily = Display, fontWeight = FontWeight.ExtraBold, fontSize = 44.sp, lineHeight = 46.sp, letterSpacing = (-1.1).sp),
+    displayMedium = TextStyle(fontFamily = Display, fontWeight = FontWeight.ExtraBold, fontSize = 40.sp, lineHeight = 42.sp, letterSpacing = (-0.9).sp),
     displaySmall = TextStyle(fontFamily = Display, fontWeight = FontWeight.ExtraBold, fontSize = 36.sp, lineHeight = 40.sp, letterSpacing = (-0.8).sp),
-    headlineLarge = TextStyle(fontFamily = Display, fontWeight = FontWeight.ExtraBold, fontSize = 30.sp, lineHeight = 34.sp, letterSpacing = (-0.6).sp),
+    headlineLarge = TextStyle(fontFamily = Display, fontWeight = FontWeight.ExtraBold, fontSize = 34.sp, lineHeight = 36.sp, letterSpacing = (-0.7).sp),
     headlineMedium = TextStyle(fontFamily = Display, fontWeight = FontWeight.ExtraBold, fontSize = 26.sp, lineHeight = 30.sp, letterSpacing = (-0.5).sp),
-    headlineSmall = TextStyle(fontFamily = Display, fontWeight = FontWeight.ExtraBold, fontSize = 22.sp, lineHeight = 27.sp, letterSpacing = (-0.3).sp),
+    headlineSmall = TextStyle(fontFamily = Display, fontWeight = FontWeight.Bold, fontSize = 20.sp, lineHeight = 25.sp, letterSpacing = (-0.3).sp),
     titleLarge = TextStyle(fontFamily = Display, fontWeight = FontWeight.Bold, fontSize = 19.sp, lineHeight = 24.sp, letterSpacing = (-0.2).sp),
-    titleMedium = BaseTypography.titleMedium.copy(fontWeight = FontWeight.Bold, fontSize = 16.sp),
-    bodyLarge = BaseTypography.bodyLarge.copy(fontFamily = FontFamily.SansSerif),
-    bodyMedium = BaseTypography.bodyMedium.copy(fontFamily = FontFamily.SansSerif),
-    labelLarge = BaseTypography.labelLarge.copy(fontWeight = FontWeight.Bold),
+    titleMedium = TextStyle(fontFamily = Sans, fontWeight = FontWeight.Bold, fontSize = 16.sp, lineHeight = 21.sp, letterSpacing = (-0.1).sp),
+    titleSmall = TextStyle(fontFamily = Sans, fontWeight = FontWeight.SemiBold, fontSize = 14.sp, lineHeight = 19.sp),
+    bodyLarge = TextStyle(fontFamily = Sans, fontWeight = FontWeight.Normal, fontSize = 15.sp, lineHeight = 22.sp),
+    bodyMedium = TextStyle(fontFamily = Sans, fontWeight = FontWeight.Normal, fontSize = 14.sp, lineHeight = 21.sp),
+    bodySmall = TextStyle(fontFamily = Sans, fontWeight = FontWeight.Normal, fontSize = 12.sp, lineHeight = 17.sp),
+    labelLarge = TextStyle(fontFamily = Sans, fontWeight = FontWeight.SemiBold, fontSize = 13.sp, lineHeight = 16.sp, letterSpacing = 0.sp),
+    labelMedium = TextStyle(fontFamily = Sans, fontWeight = FontWeight.SemiBold, fontSize = 12.sp, lineHeight = 15.sp),
+    labelSmall = EyebrowStyle,
 )
+
+/* Radius dari asset-karsa: Field 16, Button Lg 20, Pop 24, Card 28, Sheet 32, Pill 9999. */
+val FieldShape = RoundedCornerShape(16.dp)
+val ButtonShape = RoundedCornerShape(16.dp)
+val ButtonLargeShape = RoundedCornerShape(20.dp)
+val PopShape = RoundedCornerShape(24.dp)
+val SheetShape = RoundedCornerShape(32.dp)
+val PillShape = CircleShape
 
 @Composable
 fun CampusTheme(content: @Composable () -> Unit) {

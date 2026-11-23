@@ -1,11 +1,16 @@
 package id.personal.campus.ui
 
+import androidx.compose.animation.core.tween
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.activity.compose.BackHandler
-import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.Row
@@ -15,38 +20,34 @@ import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeDrawingPadding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Close
 import androidx.compose.material.icons.outlined.ExpandMore
 import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
-import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.ripple
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Switch
 import androidx.compose.material3.SwitchDefaults
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
@@ -77,15 +78,28 @@ fun EditorFrame(
         BackHandler { requestClose() }
         Surface(Modifier.fillMaxSize(), color = Paper) {
             Column(Modifier.fillMaxSize().safeDrawingPadding().imePadding()) {
-                Box(Modifier.fillMaxWidth()) {
-                    BatikPattern(Modifier.matchParentSize(), color = Brand500, alpha = 0.10f)
-                    Row(Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 10.dp), verticalAlignment = Alignment.CenterVertically) {
-                        IconButton(
-                            enabled = !busy, onClick = requestClose,
-                            colors = IconButtonDefaults.iconButtonColors(containerColor = Color.White, contentColor = Ink),
-                            modifier = Modifier.border(1.dp, Line, CircleShape),
-                        ) { Icon(Icons.Outlined.Close, contentDescription = "Tutup formulir") }
-                        Text(title, Modifier.weight(1f).padding(horizontal = 12.dp), style = MaterialTheme.typography.titleLarge)
+                val headerProgress by rememberEnterProgress(durationMillis = 260)
+                Box(
+                    Modifier
+                        .fillMaxWidth()
+                        .background(Paper)
+                        .graphicsLayer { alpha = headerProgress },
+                ) {
+                    BatikPattern(Modifier.matchParentSize(), color = Brand500, alpha = 0.08f)
+                    Row(
+                        Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 10.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        KarsaIconButton(
+                            icon = Icons.Outlined.Close,
+                            contentDescription = "Tutup formulir",
+                            onClick = requestClose,
+                            enabled = !busy,
+                        )
+                        Column(Modifier.weight(1f).padding(horizontal = 12.dp)) {
+                            Eyebrow("Kampus")
+                            Text(title, style = MaterialTheme.typography.headlineSmall, maxLines = 1)
+                        }
                     }
                 }
                 HorizontalDivider(color = Line)
@@ -97,13 +111,20 @@ fun EditorFrame(
                 if (onSave != null || onDelete != null) {
                     HorizontalDivider(color = Line)
                     Row(Modifier.fillMaxWidth().padding(12.dp), horizontalArrangement = Arrangement.spacedBy(12.dp), verticalAlignment = Alignment.CenterVertically) {
-                        if (onDelete != null) TextButton(
-                            enabled = !busy, onClick = { delete = true },
-                            colors = ButtonDefaults.textButtonColors(contentColor = Danger500),
-                        ) { Text("Hapus", fontWeight = FontWeight.Bold) }
-                        if (onSave != null) Button(modifier = Modifier.weight(1f).heightIn(min = 52.dp), enabled = !busy, onClick = onSave) {
-                            Text(if (busy) "Menyimpan…" else "Simpan", fontWeight = FontWeight.Bold)
-                        }
+                        if (onDelete != null) KarsaTextButton(
+                            "Hapus",
+                            enabled = !busy,
+                            color = Danger500,
+                            onClick = { delete = true },
+                        )
+                        if (onSave != null) KarsaButton(
+                            if (busy) "Menyimpan…" else "Simpan",
+                            onClick = onSave,
+                            modifier = Modifier.weight(1f),
+                            enabled = !busy,
+                            loading = busy,
+                            size = KarsaButtonSize.Lg,
+                        )
                     }
                 }
             }
@@ -112,10 +133,10 @@ fun EditorFrame(
             onDismissRequest = { discard = false }, title = { Text("Abaikan perubahan?") },
             text = { Text("Isian yang belum disimpan akan hilang.", color = Ink2) },
             confirmButton = {
-                TextButton(onClick = { discard = false; onDismiss() }, colors = ButtonDefaults.textButtonColors(contentColor = Danger500)) { Text("Abaikan", fontWeight = FontWeight.Bold) }
+                KarsaTextButton("Abaikan", color = Danger500) { discard = false; onDismiss() }
             },
             dismissButton = {
-                TextButton(onClick = { discard = false }, colors = ButtonDefaults.textButtonColors(contentColor = Brand600)) { Text("Lanjut mengisi", fontWeight = FontWeight.Bold) }
+                KarsaTextButton("Lanjut mengisi") { discard = false }
             },
             containerColor = Color.White, shape = CardShape, tonalElevation = 0.dp,
         )
@@ -129,21 +150,75 @@ fun EditorFrame(
 @Composable
 fun <T> ChoiceField(label: String, selected: T, options: List<Pair<T, String>>, enabled: Boolean = true, onSelect: (T) -> Unit) {
     var expanded by remember { mutableStateOf(false) }
+    val interaction = remember { MutableInteractionSource() }
+    val pressed = isPressed(interaction)
+    val container by androidx.compose.animation.animateColorAsState(
+        if (pressed || expanded) Color.White else Paper2,
+        tween(KarsaMotion.Quick, easing = KarsaMotion.Standard),
+        label = "choiceBg",
+    )
+    val borderColor by androidx.compose.animation.animateColorAsState(
+        if (expanded) Brand300 else Color.Transparent,
+        tween(KarsaMotion.Quick, easing = KarsaMotion.Standard),
+        label = "choiceBorder",
+    )
+    val chevron by androidx.compose.animation.core.animateFloatAsState(
+        if (expanded) 180f else 0f,
+        tween(KarsaMotion.Quick, easing = KarsaMotion.Standard),
+        label = "choiceChevron",
+    )
+    val chevronScale by pressScale(interaction, KarsaMotion.TapScale)
     Column {
-        OutlinedButton(
-            modifier = Modifier.fillMaxWidth().heightIn(min = 56.dp), enabled = enabled, onClick = { expanded = true },
-            shape = TileShape, colors = fieldButtonColors(), border = BorderStroke(0.dp, Color.Transparent),
-        ) {
-            Text("$label: ${options.find { it.first == selected }?.second ?: "Belum dipilih"}", Modifier.weight(1f))
-            Icon(Icons.Outlined.ExpandMore, contentDescription = null, tint = Muted)
-        }
-        DropdownMenu(
-            expanded = expanded, onDismissRequest = { expanded = false },
-            modifier = Modifier.heightIn(max = 360.dp), containerColor = Color.White, shape = TileShape,
-            tonalElevation = 0.dp, shadowElevation = 0.dp,
-        ) {
-            options.forEach { (value, text) ->
-                DropdownMenuItem(text = { Text(text) }, onClick = { onSelect(value); expanded = false })
+        Box {
+            Row(
+                Modifier
+                    .fillMaxWidth()
+                    .heightIn(min = 56.dp)
+                    .clip(TileShape)
+                    .background(container)
+                    .border(2.dp, borderColor, TileShape)
+                    .clickable(
+                        interactionSource = interaction,
+                        indication = ripple(color = Brand500.copy(alpha = 0.12f), bounded = true),
+                        enabled = enabled,
+                        role = Role.Button,
+                    ) { expanded = true }
+                    .padding(horizontal = 16.dp, vertical = 14.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Text(
+                    "$label: ${options.find { it.first == selected }?.second ?: "Belum dipilih"}",
+                    Modifier.weight(1f),
+                    style = MaterialTheme.typography.bodyLarge,
+                    color = if (enabled) Ink else Muted,
+                    maxLines = 1,
+                )
+                Icon(
+                    Icons.Outlined.ExpandMore,
+                    contentDescription = null,
+                    tint = Muted,
+                    modifier = Modifier
+                        .size(20.dp)
+                        .graphicsLayer { rotationZ = chevron; scaleX = chevronScale; scaleY = chevronScale },
+                )
+            }
+            DropdownMenu(
+                expanded = expanded, onDismissRequest = { expanded = false },
+                modifier = Modifier.heightIn(max = 360.dp), containerColor = Color.White, shape = TileShape,
+                tonalElevation = 0.dp, shadowElevation = 0.dp,
+            ) {
+                options.forEach { (value, text) ->
+                    DropdownMenuItem(
+                        text = {
+                            Text(
+                                text,
+                                fontWeight = if (value == selected) FontWeight.Bold else FontWeight.Normal,
+                                color = if (value == selected) Brand600 else Ink,
+                            )
+                        },
+                        onClick = { onSelect(value); expanded = false },
+                    )
+                }
             }
         }
     }
@@ -151,7 +226,12 @@ fun <T> ChoiceField(label: String, selected: T, options: List<Pair<T, String>>, 
 
 @Composable
 fun ToggleField(title: String, description: String, checked: Boolean, enabled: Boolean, onCheckedChange: (Boolean) -> Unit) {
-    Surface(color = Paper2, shape = TileShape, modifier = Modifier.fillMaxWidth()) {
+    val container by androidx.compose.animation.animateColorAsState(
+        if (checked) Brand50 else Paper2,
+        tween(KarsaMotion.Quick, easing = KarsaMotion.Standard),
+        label = "toggleBg",
+    )
+    Surface(color = container, shape = TileShape, modifier = Modifier.fillMaxWidth()) {
         Row(Modifier.padding(16.dp), horizontalArrangement = Arrangement.spacedBy(16.dp), verticalAlignment = Alignment.CenterVertically) {
             Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
                 Text(title, style = MaterialTheme.typography.titleMedium)
