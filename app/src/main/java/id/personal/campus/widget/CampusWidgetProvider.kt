@@ -324,7 +324,7 @@ private object WidgetRenderer {
 
         /** Eyebrow sits on its own full-width line above the row (see campus_widget.xml). */
         fun baseHeight(): Float =
-            measure.height(heading, smallSize, medium, availableWidthDp = contentWidth) + 4 +
+            measure.height(heading, smallSize, medium, availableWidthDp = contentWidth.toFloat()) + 4 +
                 primaryHeight() + 6 + footerHeight()
 
         // The countdown is the first detail dropped: a small card keeps its time, room and course.
