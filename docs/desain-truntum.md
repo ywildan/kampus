@@ -97,21 +97,27 @@ animasi warna. Setiap ketukan memberi getaran `TextHandleMove`.
 
 ## Widget layar utama (`widget/CampusWidgetProvider.kt`)
 
-Widget "Hari Ini" ikut palet Karsa setelah Compose selesai dipoles. Karena `RemoteViews` hanya
-menulis teks/ukuran/visibilitas, warnanya hidup di resource:
+Widget memakai palet Karsa, tapi **tipografinya terpaksa face sistem**. Widget di-inflate di proses
+launcher, dan `RemoteViews` tidak punya `setTypeface()` — `@font/...` di layout diabaikan dan jatuh ke
+font sistem. Jadi permintaan "font brand juga di widget" tidak bisa dipenuhi tanpa mengganti widget
+menjadi bitmap, yang akan mematikan Chronometer/TextClock live. Yang dipakai:
+`sans-serif` (isi), `sans-serif-medium` (label/eyebrow), `sans-serif-black` (jam, ruangan, angka).
 
-- `drawable/widget_background.xml` — kertas `Paper` `#FBF5EC`, guratan `Line` `#EBE0D1`, radius **28 dp**
-  (sama dengan `CardShape`). Sudut membulat memakai `clipToOutline` di layout, bukan `layer-list`.
-- `drawable/widget_room_badge.xml` — blok **espresso** `#2A1A10` radius 20 dp, sepadan dengan
-  `RoomBadge(large)`; label "RUANGAN" `#CBB6A3`, angka ruang putih.
-- `values/colors.xml` — token `karsa_*` (paper, line, ink, ink2, muted, espresso, brand, butter, danger)
-  untuk widget; nama lama `campus_*` sudah dihapus.
-- Tipografi: `@font/plus_jakarta_sans_*` langsung di XML (aman, `minSdk` 26). Eyebrow status jadi
-  kapital berwarna `Brand700` dengan `letterSpacing` 0,13; jam, ruangan, dan chronometer memakai
-  ExtraBold + `tnum` supaya angka tidak bergetar tiap detik; monospace lama dihapus.
-- `WidgetRenderer.Faces` memuat Typeface brand lewat `ResourcesCompat` agar pengukuran teks
-  (lebar badge, tinggi baris, pemilihan ukuran) sama dengan yang digambar launcher.
-- Ukuran ruang utama diturunkan 30 → 26 sp (maks 34 sp saat kartu lebar) supaya jam tetap jadi
-  fokus; baris sekunder 22 sp.
+Warna hidup di resource (RemoteViews hanya menulis teks/ukuran/visibilitas):
+- `drawable/widget_background.xml` — `Paper #FBF5EC`, garis `Line #EBE0D1`, radius **28 dp**.
+- `drawable/widget_room_badge.xml` — blok **espresso `#2A1A10`** radius 20 dp, sepadan
+  `RoomBadge(large)`; label `#CBB6A3`, angka putih.
+- `values/colors.xml` — token `karsa_*`.
+
+Tata letak yang membuatnya terbaca sekilas:
+- Eyebrow status **selebar kartu** di baris sendiri (tanggal panjang tidak boleh berebut ruang
+  dengan badge), lalu baris utama: jam + matkul di kiri, badge ruangan di kanan.
+- Ukuran: eyebrow 12 sp · jam 28 sp · ruangan 32 sp (maks 40 sp di kartu lebar) · matkul 16 sp ·
+  meta 12 sp · footer 11,5 sp · padding 12 dp (8 dp pada kartu pendek).
+- Spacer `layout_weight=1` mendorong footer ke tepi bawah kartu, jadi tidak ada ruang mati di
+  bawah jadwal yang pendek.
+- `WidgetRenderer` mengukur dengan face yang sama dengan XML (`Typeface.SANS_SERIF`,
+  `"sans-serif-medium"`, `"sans-serif-black"`), sehingga pemilihan ukuran cocok dengan hasil gambar.
+- Tinggi badge dihitung terpisah dari eyebrow, karena eyebrow kini di luar baris utama.
 
 Pratinjau: `preview/widget-preview.html` (dilayani `python3 -m http.server` di folder `preview/`).

@@ -49,15 +49,18 @@
     position: relative;
     display: flex;
     flex-direction: column;
-    padding: calc(10 * var(--u));
+    padding: calc(12 * var(--u));
     background: var(--paper);
     border: 1px solid var(--line);
     border-radius: calc(28 * var(--u));
     box-shadow: 0 calc(8 * var(--u)) calc(20 * var(--u)) calc(-6 * var(--u)) rgba(42,26,16,.20);
     overflow: hidden;
-    font-family: "PJS", Roboto, sans-serif;
+    /* Widget di-inflate launcher: RemoteViews tak punya setTypeface, jadi yang tampil
+       selalu face sistem (Roboto), bukan Plus Jakarta Sans. Mock harus jujur soal ini. */
+    font-family: Roboto, "Helvetica Neue", Arial, sans-serif;
     color: var(--ink);
   }
+  .spacer { flex: 1 1 auto; min-height: 0; }
   .row {
     display: flex;
     align-items: center;
@@ -65,9 +68,10 @@
   }
   .col { flex: 1 1 auto; min-width: 0; }
   .status {
-    font-size: calc(11 * var(--u));
+    margin-bottom: calc(4 * var(--u));
+    font-size: calc(12 * var(--u));
     font-weight: 700;
-    letter-spacing: 0.13em;
+    letter-spacing: 0.1em;
     text-transform: uppercase;
     color: var(--brand700);
     line-height: 1.25;
@@ -76,17 +80,17 @@
   .time {
     margin-top: calc(4 * var(--u));
     font-family: "PJS", Roboto, sans-serif;
-    font-weight: 800;
-    font-size: calc(23 * var(--u));
-    line-height: 1.15;
+    font-weight: 900;
+    font-size: calc(28 * var(--u));
+    line-height: 1.12;
     letter-spacing: -0.03em;
     font-variant-numeric: tabular-nums;
     overflow-wrap: anywhere;
   }
   .course {
     margin-top: calc(3 * var(--u));
-    font-weight: 600;
-    font-size: calc(14 * var(--u));
+    font-weight: 700;
+    font-size: calc(16 * var(--u));
     line-height: 1.25;
     white-space: nowrap;
     overflow: hidden;
@@ -94,7 +98,7 @@
   }
   .meta {
     margin-top: calc(2 * var(--u));
-    font-size: calc(11 * var(--u));
+    font-size: calc(12 * var(--u));
     color: var(--muted);
     line-height: 1.25;
   }
@@ -105,13 +109,13 @@
     display: flex;
     flex-direction: column;
     align-items: center;
-    padding: calc(5 * var(--u)) calc(8 * var(--u));
+    padding: calc(6 * var(--u)) calc(10 * var(--u));
     background: var(--espresso);
     border-radius: calc(20 * var(--u));
     box-shadow: 0 calc(8 * var(--u)) calc(18 * var(--u)) calc(-8 * var(--u)) rgba(42,26,16,.45);
   }
   .badge-label {
-    font-size: calc(8.5 * var(--u));
+    font-size: calc(9.5 * var(--u));
     font-weight: 700;
     letter-spacing: 0.1em;
     color: #CBB6A3;
@@ -120,8 +124,8 @@
   }
   .badge-room {
     margin-top: calc(2 * var(--u));
-    font-size: calc(24 * var(--u));
-    font-weight: 800;
+    font-size: calc(32 * var(--u));
+    font-weight: 900;
     color: #fff;
     line-height: 1.05;
     letter-spacing: -0.02em;
@@ -133,25 +137,26 @@
   .next .status { font-size: calc(11 * var(--u)); }
   .next-time {
     margin-top: calc(2 * var(--u));
-    font-weight: 800;
+    font-weight: 900;
+    font-size: calc(18 * var(--u));
     letter-spacing: -0.02em;
     font-size: calc(16 * var(--u));
     line-height: 1.2;
   }
   .next-course {
     margin-top: calc(2 * var(--u));
-    font-size: calc(12 * var(--u));
+    font-size: calc(13.5 * var(--u));
     color: var(--ink2);
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
   }
   .next .badge { padding: calc(5 * var(--u)) calc(8 * var(--u)); }
-  .next .badge-label { font-size: calc(8 * var(--u)); }
-  .next .badge-room { font-size: calc(22 * var(--u)); }
+  .next .badge-label { font-size: calc(9 * var(--u)); }
+  .next .badge-room { font-size: calc(24 * var(--u)); }
   .more {
     margin-top: calc(4 * var(--u));
-    font-size: calc(10 * var(--u));
+    font-size: calc(12 * var(--u));
     color: var(--muted);
     white-space: nowrap;
     overflow: hidden;
@@ -164,19 +169,19 @@
     display: flex;
     align-items: center;
     gap: calc(6 * var(--u));
-    font-size: calc(10 * var(--u));
+    font-size: calc(11.5 * var(--u));
     color: var(--muted);
   }
   .footer .spacer { flex: 1 1 auto; }
   .footer .clock {
-    font-weight: 800; font-size: calc(11 * var(--u)); color: var(--ink);
+    font-weight: 900; font-size: calc(12.5 * var(--u)); color: var(--ink);
     font-variant-numeric: tabular-nums;
   }
 
   /* Launcher-driven countdown; replaces the "Data" stamp while it is visible. */
   .countdown { display: flex; align-items: center; gap: calc(6 * var(--u)); }
   .countdown-label {
-    font-size: calc(8.5 * var(--u));
+    font-size: calc(9.5 * var(--u));
     font-weight: 700;
     letter-spacing: 0.1em;
     color: var(--brand700);
@@ -184,8 +189,8 @@
     white-space: nowrap;
   }
   .countdown-clock {
-    font-weight: 800;
-    font-size: calc(12 * var(--u));
+    font-weight: 900;
+    font-size: calc(13 * var(--u));
     line-height: 1.2;
     color: var(--ink);
     font-variant-numeric: tabular-nums;
@@ -204,12 +209,19 @@
 </style>
 </head>
 <body>
-  <h1>Pratinjau widget “Hari Ini” — gaya Karsa</h1>
+  <h1>Pratinjau widget “Hari Ini” — gaya Karsa v2</h1>
   <p class="lead">
     Replika 1:1 dari <code>campus_widget.xml</code> dengan palet Karsa: kertas hangat
     <code>#FBF5EC</code>, garis <code>#EBE0D1</code>, sudut kartu 28dp, badge ruangan blok espresso
-    <code>#2A1A10</code> (sudut 20dp), dan tipografi Plus Jakarta Sans. Latar sengaja rata tanpa
-    motif batik: <code>layer-list</code> di RemoteViews tidak bisa memotong motif ke sudut membulat.
+    <code>#2A1A10</code> (sudut 20dp). Latar sengaja rata tanpa motif batik: <code>layer-list</code>
+    di RemoteViews tidak bisa memotong motif ke sudut membulat.
+    <br><br>
+    <strong>Tipografi:</strong> widget di-inflate di proses launcher dan <code>RemoteViews</code> tidak
+    punya <code>setTypeface()</code>, jadi font bundled tidak mungkin sampai ke sini — yang tampil
+    adalah face sistem (<code>sans-serif</code> / <code>sans-serif-medium</code> /
+    <code>sans-serif-black</code>). Mock ini karena itu memakai Roboto, bukan Plus Jakarta Sans.
+    Ukuran dinaikkan supaya terbaca sekilas: jam 28sp, ruangan 32sp, matkul 16sp, eyebrow 12sp,
+    footer 11,5sp, padding 12dp.
     Setiap sisa jadwal di hari yang sama dapat barisnya sendiri (dulu hanya satu baris), dan bila
     tidak muat, sisa itu diringkas jadi “+N jadwal lagi hari ini”. Footer menampilkan hitung mundur
     live ke jam mulai (Chronometer yang digerakkan launcher, bukan refresh widget) dan menyembunyikan
@@ -225,9 +237,10 @@
   <div class="grid">
     <figure>
       <div class="widget" style="width: calc(250 * var(--u)); height: calc(180 * var(--u));">
+        <div class="status">BERIKUTNYA · RABU, 11 NOV 2026</div>
+        <div class="spacer"></div>
         <div class="row">
           <div class="col">
-            <div class="status">BERIKUTNYA · Rabu, 11 Nov 2026</div>
             <div class="time">07:00–08:40</div>
             <div class="course">Ketentuan Umum Perpajakan</div>
             <div class="meta">Kelas 01</div>
@@ -261,14 +274,15 @@
           <span class="clock">02:06:38</span>
         </div>
       </div>
-      <figcaption>4×2 standar · 250×180dp — sisa jadwal diringkas jadi “+1 jadwal lagi hari ini”</figcaption>
+      <figcaption>4×2 · 250×180dp — eyebrow selebar kartu, jam 28sp, ruangan 32sp, footer menempel di bawah</figcaption>
     </figure>
 
     <figure>
       <div class="widget" style="width: calc(320 * var(--u)); height: calc(250 * var(--u));">
+        <div class="status">BERIKUTNYA · RABU, 11 NOV 2026</div>
+        <div class="spacer"></div>
         <div class="row">
           <div class="col">
-            <div class="status">BERIKUTNYA · Rabu, 11 Nov 2026</div>
             <div class="time">07:00–08:40</div>
             <div class="course">Ketentuan Umum Perpajakan</div>
             <div class="meta">Kelas 01</div>
@@ -319,9 +333,9 @@
 
     <figure>
       <div class="widget compact" style="width: calc(180 * var(--u)); height: calc(110 * var(--u));">
+        <div class="status">BERIKUTNYA · RABU, 11 NOV 2026</div>
         <div class="row">
           <div class="col">
-            <div class="status">BERIKUTNYA · Rabu, 11 Nov 2026</div>
             <div class="time">07:00–08:40</div>
             <div class="course">Ketentuan Umum Perpajakan</div>
           </div>
@@ -342,9 +356,9 @@
 
     <figure>
       <div class="widget" style="width: calc(250 * var(--u)); height: calc(180 * var(--u));">
+        <div class="status">JADWAL KOSONG</div>
         <div class="row">
           <div class="col">
-            <div class="status">JADWAL KOSONG</div>
             <div class="time">Belum ada jadwal</div>
             <div class="course">Ketuk untuk membuka pengaturan</div>
           </div>
